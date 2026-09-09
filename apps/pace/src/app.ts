@@ -89,7 +89,7 @@ import {
 import { readClipboardImage, type SupportedImageMediaType } from "./clipboard";
 import { sendDesktopNotification } from "./notify";
 import { onEvent, resolveProvider } from "@pace/llm";
-import { loadPaceConfig, DEFAULT_COST_DISPLAY_CONFIG, DEFAULT_COMPACTION_CONFIG, DEFAULT_TOOL_PROGRESS_CONFIG, type CostDisplayConfig, type CompactionConfig, type ToolProgressConfig } from "./config";
+import { loadPaceConfig, effectiveCompactionThreshold, DEFAULT_COST_DISPLAY_CONFIG, DEFAULT_COMPACTION_CONFIG, DEFAULT_TOOL_PROGRESS_CONFIG, type CostDisplayConfig, type CompactionConfig, type ToolProgressConfig } from "./config";
 import { STREAM_TITLE_UPDATE_MS, streamingToolTitle } from "./tool-progress";
 import {
   assembleSystemText,
@@ -788,22 +788,6 @@ async function buildAgentSystemText(): Promise<string> {
     globalAgentsFileContents,
     agentsFileContents,
   });
-}
-
-/**
- * Effective auto-compaction threshold: the configured threshold clamped to
- * the model's window, so 128k/32k models compact before overflowing.
- * Disabled (undefined) when auto-compaction is off or the context window is
- * unknown.
- */
-function effectiveCompactionThreshold(modelConfig: ModelConfig): number | undefined {
-  if (!compactionConfig.auto || modelConfig.contextWindow <= 0) {
-    return undefined;
-  }
-  return Math.min(
-    compactionConfig.thresholdTokens,
-    modelConfig.contextWindow - modelConfig.maxOutputTokens - 8_000,
-  );
 }
 
 /**
@@ -1896,7 +1880,10 @@ async function prompt(
       signal,
 
       compaction: (() => {
-        const threshold = effectiveCompactionThreshold(modelConfig);
+        const threshold = effectiveCompactionThreshold(
+          compactionConfig,
+          modelConfig.contextWindow,
+        );
         if (threshold === undefined) {
           return undefined;
         }

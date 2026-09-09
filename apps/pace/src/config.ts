@@ -51,6 +51,26 @@ export const DEFAULT_COMPACTION_CONFIG: CompactionConfig = {
   keepRecentTokens: 20_000,
 };
 
+const COMPACTION_SAFETY_MARGIN_TOKENS = 8_000;
+
+/**
+ * Resolve the auto-compaction threshold against the model's context window.
+ * The output-token limit is intentionally irrelevant: some providers report
+ * the full context window as the maximum possible output size.
+ */
+export function effectiveCompactionThreshold(
+  config: CompactionConfig,
+  contextWindow: number,
+): number | undefined {
+  if (!config.auto || contextWindow <= COMPACTION_SAFETY_MARGIN_TOKENS) {
+    return undefined;
+  }
+  return Math.min(
+    config.thresholdTokens,
+    contextWindow - COMPACTION_SAFETY_MARGIN_TOKENS,
+  );
+}
+
 export const DEFAULT_TOOL_PROGRESS_CONFIG: ToolProgressConfig = {
   streamedBytes: true,
 };

@@ -61,7 +61,7 @@ import {
   type StreamEvent,
 } from "@pace/llm";
 import { loadPreferences } from "./preferences";
-import { loadPaceConfig, DEFAULT_COMPACTION_CONFIG, type CompactionConfig } from "./config";
+import { loadPaceConfig, effectiveCompactionThreshold, DEFAULT_COMPACTION_CONFIG, type CompactionConfig } from "./config";
 import {
   assembleSystemText,
   computeCallCost,
@@ -460,12 +460,10 @@ export async function runHeadless(argv: string[], io: HeadlessIo = {}): Promise<
       break;
     }
   }
-  const compactionThreshold = compactionConfig.auto && modelConfig.contextWindow > 0
-    ? Math.min(
-        compactionConfig.thresholdTokens,
-        modelConfig.contextWindow - modelConfig.maxOutputTokens - 8_000,
-      )
-    : undefined;
+  const compactionThreshold = effectiveCompactionThreshold(
+    compactionConfig,
+    modelConfig.contextWindow,
+  );
 
   const reasoningBlocks: ThinkingBlock[] = [];
   const toolNames = new Map<string, string>();
