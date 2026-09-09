@@ -289,6 +289,7 @@ Frontmatter fields:
 | `description` | Tells the main agent when to delegate. Be specific about trigger conditions |
 | `tools` | Comma-separated allowlist. Omit for all tools |
 | `model` | Optional model id, e.g. `opencode/claude-haiku-4-5`. Defaults to the current model |
+| `variant` | Optional variant id for the model, e.g. `low` (reasoning effort). Ignored if the model has no such variant |
 
 Subagents cannot spawn subagents. Use `/agents` to list available agents.
 

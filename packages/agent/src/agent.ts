@@ -30,6 +30,8 @@ export type AgentDefinition = {
   tools: string[];
   /** Optional model id override. Empty means inherit the current model. */
   model?: string;
+  /** Optional variant id for the model (e.g. a reasoning-effort level). */
+  variant?: string;
   /** Absolute path to the agent file. Absent for built-in agents. */
   filePath?: string;
   /** System prompt body. Present only for built-in agents. */
@@ -47,6 +49,7 @@ const BUILTIN_EXPLORE_AGENT: AgentDefinition = {
     "keep the main conversation clean.",
   tools: ["read", "bash", "web_fetch", "web_search"],
   model: "fireworks/glm-5.3-flash",
+  variant: "low",
   source: "builtin",
   body: `You are the explore agent. You do fast, read-only codebase exploration.
 
@@ -127,6 +130,7 @@ async function scanAgentsDir(
       description,
       tools,
       ...(typeof fm.model === "string" && fm.model.length > 0 ? { model: fm.model } : {}),
+      ...(typeof fm.variant === "string" && fm.variant.length > 0 ? { variant: fm.variant } : {}),
       filePath,
       source,
     });

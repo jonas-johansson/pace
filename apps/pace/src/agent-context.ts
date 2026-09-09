@@ -12,6 +12,7 @@ import { existsSync } from "fs";
 import { homedir } from "os";
 import { join } from "path";
 import type { ModelConfig } from "@pace/llm";
+import { getModelVariant } from "@pace/llm";
 import {
   loadAgentBody,
   runSubagent,
@@ -148,6 +149,23 @@ export type SubagentRuntimeDeps = {
   resolveModelConfig: (modelId: string | undefined) => ModelConfig;
 };
 
+/**
+ * Apply a model variant's provider-native options (e.g. reasoning effort) on
+ * top of a model config. Unknown variant ids are ignored.
+ */
+export function applyModelVariant(config: ModelConfig, variantId: string | undefined): ModelConfig {
+  if (!variantId) return config;
+  const variant = getModelVariant(config.id, variantId);
+  if (!variant) return config;
+  return {
+    ...config,
+    providerOptions: {
+      ...(config.providerOptions ?? {}),
+      ...variant.providerOptions,
+    },
+  };
+}
+
 export type SubagentRuntimeContext = {
   skillsSection: string;
   globalAgentsFileContents: string | null;
@@ -165,7 +183,8 @@ export function makeSubagentRuntime(
 ): AgentRuntime {
   return {
     run: async ({ agent, task, signal, onProgress }) => {
-      const modelConfig = deps.resolveModelConfig(agent.model || undefined);
+      const resolvedConfig = deps.resolveModelConfig(agent.model || undefined);
+      const modelConfig = applyModelVariant(resolvedConfig, agent.variant);
       const provider = await resolveProvider(modelConfig);
       const body = await loadAgentBody(agent);
       const subagentTools = filterToolsForAgent(agent);
