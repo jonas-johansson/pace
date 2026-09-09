@@ -5,9 +5,13 @@ import {
   formatCostAmount,
   formatSessionCost,
   formatTokenCount,
+  FOCUSED_ACTIVITY_BLOCK_KEY,
+  FOCUSED_ACTIVITY_PLACEHOLDER,
+  projectBlocksForDisplay,
   type BlockState,
   type BlockPatch,
   type ContextInfo,
+  type DisplayMode,
   type RenderBlock,
 } from "./view-model";
 
@@ -239,6 +243,7 @@ export class Tui {
   private nextBlockId = 1;
   private running = false;
   private status = "idle";
+  private displayMode: DisplayMode = "focused";
   private model = "";
   private spinnerFrame = 0;
   private spinnerTimer: ReturnType<typeof setInterval> | undefined;
@@ -327,7 +332,7 @@ export class Tui {
   private treeOverlayInContextCount: number | undefined = undefined;
   private treeOverlayExpanded = new Set<string>();
 
-  constructor(private readonly options: { onSubmit?: SubmitHandler; onSteer?: (text: string) => void; onTab?: () => void; onShiftTab?: () => void; onCycleVariant?: () => void; onEscape?: () => void; onExit?: () => void | Promise<void>; onPasteImage?: () => void | Promise<void>; slashCommands?: SuggestionProvider; fileSuggestions?: FileSuggestionProvider; modelOverlay?: ModelOverlayOptions; mcpOverlay?: McpOverlayOptions; sessionOverlay?: SessionOverlayOptions; treeOverlay?: TreeOverlayOptions; model?: string; cwd?: string; gitBranch?: string } = {}) {
+  constructor(private readonly options: { onSubmit?: SubmitHandler; onSteer?: (text: string) => void; onTab?: () => void; onShiftTab?: () => void; onCycleVariant?: () => void; onToggleDisplayMode?: () => void; onEscape?: () => void; onExit?: () => void | Promise<void>; onPasteImage?: () => void | Promise<void>; slashCommands?: SuggestionProvider; fileSuggestions?: FileSuggestionProvider; modelOverlay?: ModelOverlayOptions; mcpOverlay?: McpOverlayOptions; sessionOverlay?: SessionOverlayOptions; treeOverlay?: TreeOverlayOptions; model?: string; cwd?: string; gitBranch?: string } = {}) {
     this.model = options.model ?? "";
     this.cwd = options.cwd ?? "";
     this.gitBranch = options.gitBranch ?? "";
@@ -456,6 +461,16 @@ export class Tui {
     }
 
     this.requestRender();
+  }
+
+  setDisplayMode(mode: DisplayMode) {
+    if (this.displayMode === mode) return;
+    this.displayMode = mode;
+    this.scrollOffset = 0;
+    this.lastRenderedLineCount = 0;
+    this.selection = undefined;
+    this.blockLineMap = [];
+    this.invalidateRenderCache();
   }
 
   setModel(model: string) {
@@ -826,6 +841,12 @@ export class Tui {
       // Ctrl+T — cycle the current model's variant.
       if (char === "\u0014") {
         this.options.onCycleVariant?.();
+        continue;
+      }
+
+      // Ctrl+G — toggle focused/detailed display mode.
+      if (char === "\u0007") {
+        this.options.onToggleDisplayMode?.();
         continue;
       }
 
@@ -2602,6 +2623,10 @@ export class Tui {
     const renderedBlocks: string[] = [];
     const blockLineMap: number[] = [];
     const spinnerFrame = SPINNER_FRAMES[this.spinnerFrame];
+    const visibleBlocks = projectBlocksForDisplay(this.blocks, {
+      mode: this.displayMode,
+      running: this.running,
+    });
 
     // Classify each block's visual type for margin logic
     type VisualType = "user" | "assistant" | "inline-tool" | "panel" | "error" | "meta";
@@ -2618,17 +2643,17 @@ export class Tui {
     // that render nothing (e.g. an assistant text block that only contains
     // whitespace) are skipped so they cannot suppress trailing margins.
     const nextVisibleType = (fromIndex: number): VisualType | undefined => {
-      for (let i = fromIndex + 1; i < this.blocks.length; i++) {
-        if (!blockRendersEmpty(this.blocks[i])) {
-          return visualType(this.blocks[i]);
+      for (let i = fromIndex + 1; i < visibleBlocks.length; i++) {
+        if (!blockRendersEmpty(visibleBlocks[i])) {
+          return visualType(visibleBlocks[i]);
         }
       }
       return undefined;
     };
 
     let prevType: VisualType | undefined;
-    for (let blockIdx = 0; blockIdx < this.blocks.length; blockIdx++) {
-      const block = this.blocks[blockIdx];
+    for (let blockIdx = 0; blockIdx < visibleBlocks.length; blockIdx++) {
+      const block = visibleBlocks[blockIdx];
       const curType = visualType(block);
 
       // ── P0: Block-level render cache ──
@@ -3550,6 +3575,11 @@ function renderBlock(block: RenderBlock, columns: number, spinnerFrame: string) 
     return renderPanelToolBlock(block, columns, spinnerFrame, sanitized);
   }
 
+  // ── Focused activity: spinner + "Thinking..." line ──
+  if (block.key === FOCUSED_ACTIVITY_BLOCK_KEY) {
+    return renderFocusedActivityBlock(columns, spinnerFrame);
+  }
+
   // ── Meta blocks: muted one-line turn usage summary ──
   if (block.role === "meta") {
     return renderMetaBlock(block, columns, sanitized);
@@ -3762,6 +3792,22 @@ function renderMetaBlock(block: RenderBlock, columns: number, sanitizedContent: 
 
   const rows = wrapSegments([{ text: content, style: "normal" }], innerWidth);
   return rows.map((row) => renderBlockRow(row, theme, columns));
+}
+
+/**
+ * Render the focused activity block: a muted spinner + "Thinking..." line,
+ * shown in focused mode while the agent works.
+ */
+function renderFocusedActivityBlock(columns: number, spinnerFrame: string) {
+  const theme = currentTheme.blocks.meta;
+  const indicator = renderInlineStateIndicator("running", spinnerFrame);
+  const text = FOCUSED_ACTIVITY_PLACEHOLDER;
+  const visible = (indicator ? displayWidth(indicator.text) + 1 : 0) + displayWidth(text);
+  const rightPad = Math.max(0, columns - 2 - visible);
+  const indicatorRendered = indicator ? `${indicator.rendered} ` : "";
+  return [
+    `${bg(theme.bg)}  ${indicatorRendered}${RESET}${bg(theme.bg)}${fg(theme.accent)}${text}${RESET}${bg(theme.bg)}${" ".repeat(rightPad)}${RESET}`,
+  ];
 }
 
 /** Render a tool block as a single inline line: `title  ✓` */

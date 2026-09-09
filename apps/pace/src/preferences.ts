@@ -10,6 +10,7 @@
  *     session instead restores that session's last-used model)
  *   - MCP server enable/disable overrides (the mcp.json file itself is
  *     user-authored and never modified)
+ *   - the transcript presentation mode (focused or detailed)
  *
  * Loading is tolerant: malformed JSON or entries that reference models or
  * variants no longer present in the catalog are dropped rather than throwing,
@@ -21,6 +22,7 @@ import { homedir } from "os";
 import { join } from "path";
 import { randomUUID } from "crypto";
 import { z } from "zod";
+import type { DisplayMode } from "./view-model";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -36,6 +38,8 @@ export type UserPreferences = {
    * Pace-owned runtime state; the user-authored mcp.json is never modified.
    */
   mcpEnabled?: Record<string, boolean>;
+  /** Transcript presentation mode. */
+  displayMode?: DisplayMode;
 };
 
 // ── Schema ───────────────────────────────────────────────────────────────────
@@ -45,6 +49,7 @@ const userPreferencesSchema = z.object({
   variantByModel: z.record(z.string(), z.string()).optional(),
   currentModel: z.string().optional(),
   mcpEnabled: z.record(z.string(), z.boolean()).optional(),
+  displayMode: z.enum(["focused", "detailed"]).optional(),
 });
 
 // ── Paths ────────────────────────────────────────────────────────────────────

@@ -99,6 +99,7 @@ Model catalog environment variables:
 |---|---|
 | **Tab** / **Shift+Tab** | Cycle models forward / backward |
 | **Ctrl+T** | Cycle the current model's variant, including unset |
+| **Ctrl+G** | Toggle focused and detailed transcript views |
 | **Escape** | Cancel the running prompt |
 | **Ctrl+V** | Paste image from clipboard |
 | **Ctrl+C** | Clear input, or press twice to exit |
@@ -116,11 +117,14 @@ Model catalog environment variables:
 | `/resume <id>` | Resume a saved session |
 | `/undo` | Rewind to before the last user message |
 | `/compact [focus]` | Summarize older context to free up the window |
+| `/view <focused\|detailed>` | Switch between compact activity and the complete transcript |
 | `/skills` | List available skills |
 | `/skill:<name>` | Run a skill |
 | `/agents` | List available subagents |
 | `/mcp` | List connected MCP servers and tools |
 | `/mcps` | Enable or disable MCP servers (Ctrl+E) |
+
+Pace starts in focused view, which shows only the latest agent message, plus a `Thinking...` line while Pace is working. The complete transcript is still recorded; press Ctrl+G or use `/view detailed` to reveal it at any time, including while Pace is working.
 
 ## File and image references
 

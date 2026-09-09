@@ -8,6 +8,12 @@ import type { BlockRole } from "./themes";
 import { DEFAULT_COST_DISPLAY_CONFIG, type CostDisplayConfig } from "./config";
 
 export type BlockState = "running" | "done" | "error";
+export type DisplayMode = "focused" | "detailed";
+
+export const FOCUSED_ACTIVITY_BLOCK_ID = -1;
+export const FOCUSED_ACTIVITY_BLOCK_KEY = "focused-activity";
+/** Placeholder shown in the focused view while the agent works. */
+export const FOCUSED_ACTIVITY_PLACEHOLDER = "Thinking...";
 
 export type RenderBlock = {
   id: number;
@@ -29,6 +35,66 @@ export type ContextInfo = {
   /** True when usedTokens is an estimate (e.g. right after a compaction). */
   estimated?: boolean;
 };
+
+function hasVisibleAssistantContent(block: RenderBlock): boolean {
+  return block.role === "assistant" && Boolean(block.title || block.content.trim());
+}
+
+function activityBlock(): RenderBlock {
+  return {
+    id: FOCUSED_ACTIVITY_BLOCK_ID,
+    key: FOCUSED_ACTIVITY_BLOCK_KEY,
+    role: "assistant",
+    content: FOCUSED_ACTIVITY_PLACEHOLDER,
+    state: "running",
+  };
+}
+
+/**
+ * Project the complete render transcript into the selected presentation mode.
+ *
+ * Detailed mode returns the blocks unchanged. Focused mode keeps only the
+ * latest agent message (plus any error blocks that came after it) and, while
+ * the agent is running, appends one synthetic "Thinking..." activity block.
+ * The input is never mutated, so switching modes mid-turn is lossless.
+ */
+export function projectBlocksForDisplay(
+  blocks: RenderBlock[],
+  options: { mode: DisplayMode; running: boolean },
+): RenderBlock[] {
+  if (options.mode === "detailed") return blocks;
+
+  // While running, focus on the current turn (after the newest user message);
+  // when idle, the whole transcript collapses to its latest message.
+  let turnStart = 0;
+  if (options.running) {
+    for (let index = blocks.length - 1; index >= 0; index--) {
+      if (blocks[index].role === "user") {
+        turnStart = index + 1;
+        break;
+      }
+    }
+  }
+
+  // Scan backward from the end: keep error blocks, stop at the first
+  // contentful assistant block — the latest agent message. Reasoning, tool,
+  // meta, and user blocks are hidden.
+  const projected: RenderBlock[] = [];
+  for (let index = blocks.length - 1; index >= turnStart; index--) {
+    const block = blocks[index];
+    if (block.role === "error") {
+      projected.unshift(block);
+    } else if (hasVisibleAssistantContent(block)) {
+      projected.unshift(block);
+      break;
+    }
+  }
+
+  if (options.running) {
+    projected.push(activityBlock());
+  }
+  return projected;
+}
 
 export function formatTokenCount(tokens: number): string {
   if (tokens >= 1_000_000) {

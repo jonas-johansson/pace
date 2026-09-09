@@ -3,7 +3,7 @@ import { existsSync } from "fs";
 import { homedir } from "os";
 import { join, resolve, extname } from "path";
 import { Tui } from "./tui";
-import { formatSessionCost, formatTokenCount } from "./view-model";
+import { formatSessionCost, formatTokenCount, type DisplayMode } from "./view-model";
 import { getGitBranch } from "./git.js";
 import {
   formatTurnSummary,
@@ -160,6 +160,7 @@ let sessionTitleModelSelection: ModelSelection = {
   variantId: DEFAULT_SESSION_TITLE_MODEL_VARIANT,
 };
 let activeSession = createSession(process.cwd(), currentModelId);
+let displayMode: DisplayMode = "focused";
 
 /** Compaction settings from ~/.config/pace/config.json (defaults apply otherwise). */
 let compactionConfig: CompactionConfig = DEFAULT_COMPACTION_CONFIG;
@@ -240,6 +241,17 @@ function cancelPrompt() {
   currentAbortController.abort();
 }
 
+function setDisplayMode(mode: DisplayMode, showStatus = true, persist = true) {
+  displayMode = mode;
+  tui.setDisplayMode(mode);
+  if (persist) schedulePreferenceSave();
+  if (showStatus) tui.setStatus(`View: ${mode}`);
+}
+
+function toggleDisplayMode() {
+  setDisplayMode(displayMode === "focused" ? "detailed" : "focused");
+}
+
 function queueSteeringMessage(text: string) {
   if (text.startsWith("/") || text.startsWith("!")) {
     tui.setStatus("Commands are not available while the agent is running");
@@ -257,6 +269,7 @@ const tui = new Tui({
   onTab: cycleModel,
   onShiftTab: cycleModelReverse,
   onCycleVariant: cycleModelVariant,
+  onToggleDisplayMode: toggleDisplayMode,
   onEscape: cancelPrompt,
   onExit: async () => {
     await flushPreferenceSave();
@@ -282,6 +295,7 @@ const tui = new Tui({
     { label: "/agents", detail: "List available agents", kind: "command", insertText: "/agents " },
     { label: "/mcp", detail: "List connected MCP servers and tools", kind: "command", insertText: "/mcp" },
     { label: "/mcps", detail: "Enable or disable MCP servers (Ctrl+E)", kind: "command", insertText: "/mcps", executeOnAccept: true },
+    { label: "/view", detail: "Show or switch display mode (Ctrl+G)", kind: "command", insertText: "/view " },
     { label: "/theme", detail: "Show or switch theme", kind: "command", insertText: "/theme " },
     { label: "/themes", detail: "List available themes", kind: "command", insertText: "/themes", executeOnAccept: true },
   ],
@@ -937,6 +951,7 @@ function buildPreferences() {
     ...(Object.keys(variantByModel).length > 0 && { variantByModel }),
     ...(Object.keys(mcpEnabledOverrides).length > 0 && { mcpEnabled: mcpEnabledOverrides }),
     currentModel: formatCurrentModelSelection(),
+    displayMode,
   };
 }
 
@@ -973,7 +988,12 @@ function applyStoredPreferences(preferences: {
   variantByModel?: Record<string, string>;
   currentModel?: string;
   mcpEnabled?: Record<string, boolean>;
+  displayMode?: DisplayMode;
 }) {
+  if (preferences.displayMode) {
+    setDisplayMode(preferences.displayMode, false, false);
+  }
+
   if (preferences.mcpEnabled) {
     mcpEnabledOverrides = { ...preferences.mcpEnabled };
   }
@@ -1148,6 +1168,19 @@ async function handleCommand(command: string): Promise<boolean> {
       await shutdownMcpServers();
       tui.stop();
       process.exit(0);
+    }
+    case "/view": {
+      const requestedMode = args[0];
+      if (!requestedMode) {
+        tui.setStatus(`View: ${displayMode} — usage: /view <focused|detailed>`);
+        return true;
+      }
+      if (requestedMode !== "focused" && requestedMode !== "detailed") {
+        tui.addBlock({ role: "error", title: "Invalid view", content: "Usage: /view <focused|detailed>" });
+        return true;
+      }
+      setDisplayMode(requestedMode);
+      return true;
     }
     case "/model": {
       const requestedModel = args[0];
