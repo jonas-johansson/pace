@@ -16,7 +16,7 @@ test("detailed view preserves every block", () => {
   assert.strictEqual(projectBlocksForDisplay(blocks, { mode: "detailed", running: true }), blocks);
 });
 
-test("focused view shows the newest user message and the latest agent message", () => {
+test("focused view keeps every user message and each turn's final agent message", () => {
   const blocks = [
     block(1, "user", "First"),
     block(2, "assistant", "First answer"),
@@ -27,18 +27,18 @@ test("focused view shows the newest user message and the latest agent message", 
     block(7, "meta", "tokens"),
   ];
   const projected = projectBlocksForDisplay(blocks, { mode: "focused", running: false });
-  assert.deepEqual(projected.map(({ id }) => id), [3, 6]);
+  assert.deepEqual(projected.map(({ id }) => id), [1, 2, 3, 6]);
 });
 
-test("focused view shows intermediate narration only while it is the latest message", () => {
+test("intermediate assistant narration is hidden once the final answer arrives", () => {
   const blocks = [
     block(1, "user", "Look"),
     block(2, "assistant", "I will inspect"),
     block(3, "tool", "output"),
     block(4, "assistant", "Final answer"),
   ];
-  const idle = projectBlocksForDisplay(blocks, { mode: "focused", running: false });
-  assert.deepEqual(idle.map(({ id }) => id), [1, 4]);
+  const projected = projectBlocksForDisplay(blocks, { mode: "focused", running: false });
+  assert.deepEqual(projected.map(({ id }) => id), [1, 4]);
 });
 
 test("focused view skips whitespace-only assistant blocks", () => {
@@ -73,7 +73,18 @@ test("a running turn shows the in-flight assistant message above the activity bl
   assert.deepEqual(projected.map(({ id }) => id), [1, 4, FOCUSED_ACTIVITY_BLOCK_ID]);
 });
 
-test("a steering user message replaces the focus segment while running", () => {
+test("previous turns stay visible while a new turn runs", () => {
+  const blocks = [
+    block(1, "user", "First"),
+    block(2, "assistant", "First answer"),
+    block(3, "user", "Second"),
+    block(4, "tool", "output"),
+  ];
+  const projected = projectBlocksForDisplay(blocks, { mode: "focused", running: true });
+  assert.deepEqual(projected.map(({ id }) => id), [1, 2, 3, FOCUSED_ACTIVITY_BLOCK_ID]);
+});
+
+test("a steering user message starts a new focus segment while running", () => {
   const blocks = [
     block(1, "user", "First"),
     block(2, "assistant", "First answer"),
@@ -81,7 +92,7 @@ test("a steering user message replaces the focus segment while running", () => {
     block(4, "assistant", "Continuing"),
   ];
   const projected = projectBlocksForDisplay(blocks, { mode: "focused", running: true });
-  assert.deepEqual(projected.map(({ id }) => id), [3, 4, FOCUSED_ACTIVITY_BLOCK_ID]);
+  assert.deepEqual(projected.map(({ id }) => id), [1, 2, 3, 4, FOCUSED_ACTIVITY_BLOCK_ID]);
 });
 
 test("a running turn with no user message still shows the activity block", () => {
@@ -89,25 +100,28 @@ test("a running turn with no user message still shows the activity block", () =>
   assert.deepEqual(projected.map(({ id }) => id), [FOCUSED_ACTIVITY_BLOCK_ID]);
 });
 
-test("error blocks newer than the latest agent message stay visible", () => {
+test("blocks before the first user message stay visible", () => {
+  const blocks = [block(1, "error", "One"), block(2, "tool", "hidden"), block(3, "assistant", "Two"), block(4, "user", "Hi")];
+  const projected = projectBlocksForDisplay(blocks, { mode: "focused", running: false });
+  assert.deepEqual(projected.map(({ id }) => id), [1, 3, 4]);
+});
+
+test("error blocks newer than the turn's final answer stay visible", () => {
   const blocks = [
     block(1, "user", "Look"),
     block(2, "assistant", "Answer"),
     block(3, "error", "Compaction failed"),
+    block(4, "user", "Next"),
+    block(5, "assistant", "Next answer"),
   ];
   const projected = projectBlocksForDisplay(blocks, { mode: "focused", running: false });
-  assert.deepEqual(projected.map(({ id }) => id), [1, 2, 3]);
+  assert.deepEqual(projected.map(({ id }) => id), [1, 2, 3, 4, 5]);
 });
 
-test("error blocks between the user message and the latest agent message stay visible", () => {
-  const blocks = [
-    block(1, "user", "Look"),
-    block(2, "tool", "output"),
-    block(3, "error", "Failed"),
-    block(4, "assistant", "Recovered answer"),
-  ];
+test("a turn with an error and no final answer shows the error", () => {
+  const blocks = [block(1, "user", "Look"), block(2, "tool", "output"), block(3, "error", "Failed")];
   const projected = projectBlocksForDisplay(blocks, { mode: "focused", running: false });
-  assert.deepEqual(projected.map(({ id }) => id), [1, 3, 4]);
+  assert.deepEqual(projected.map(({ id }) => id), [1, 3]);
 });
 
 test("a user command with no agent response still shows the command", () => {

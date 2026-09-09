@@ -8,7 +8,7 @@ Add a distraction-free display mode alongside today's complete transcript:
 ⠙ Thinking...
 ```
 
-While the agent works, focused mode shows the newest user message and a single muted `Thinking...` line (plus the in-flight streamed message once text arrives). When the loop completes, the user message and the final assistant response remain. Users can switch instantly between this view and today's complete transcript, including while an agent is running.
+While the agent works, focused mode shows the full history collapsed to one row per turn — each user message followed by that turn's final agent message — plus a single muted `Thinking...` line under the running turn (with the in-flight streamed message once text arrives). Users can switch instantly between this view and today's complete transcript, including while an agent is running.
 
 ## Product decisions
 
@@ -23,12 +23,12 @@ While the agent works, focused mode shows the newest user message and a single m
 ## Focused-mode behavior
 
 - **Detailed mode** renders every block exactly as it does today — the projection returns the block list unchanged.
-- **Focused mode** renders only:
-  1. The newest user message.
-  2. The latest agent message: the last assistant block with visible content (title or non-whitespace text) after that user message.
-  3. Error blocks between or after them, so failures are never hidden.
-  4. One synthetic `Thinking...` activity row whenever `Tui.running` is true. The normal spinner animates it; the unchanged status bar continues to report compaction, retries, and tool progress.
-- Reasoning, tool, meta, and earlier turns are hidden. Intermediate assistant narration is hidden once a later message arrives; each steering user message starts a new focus segment.
+- **Focused mode** collapses each user turn to a small footprint:
+  1. The user message.
+  2. The turn's latest agent message: its last assistant block with visible content (title or non-whitespace text) — the final answer once the turn completes.
+  3. Error blocks newer than that answer, so failures are never hidden.
+  4. For the running turn: one synthetic `Thinking...` activity row. The normal spinner animates it; the unchanged status bar continues to report compaction, retries, and tool progress. The in-flight streamed message shows above it.
+- Reasoning, tool, meta, and intermediate assistant narration are hidden in every turn. Each steering user message starts a new turn segment. Standalone output before the first user message (startup errors, command responses) stays visible.
 - Completion/cancellation/error blocks are regular assistant/error blocks, so the projection reveals the outcome automatically when `running` flips false — no special-casing.
 - `!command` output is a tool block and is therefore not shown in focused mode; Ctrl+G reveals it.
 - Mode changes reset scroll/selection state; block-click mappings are rebuilt from the projected rows.
@@ -63,7 +63,7 @@ Mode ownership lives in `app.ts` (persisted application preference). Projection 
 `test/focused-view.test.ts` against pure exports from `apps/pace/dist/view-model.js`:
 
 1. Detailed projection returns the identical block list.
-2. Focused projection shows the newest user message and the latest agent message.
+2. Focused projection keeps every user message and each turn's final agent message.
 3. Whitespace-only assistant blocks are skipped; titled blocks count as visible.
 4. A running turn collapses to the activity block before text streams, and shows the in-flight message above it once text arrives.
 5. A running turn with no user message still shows the activity block.

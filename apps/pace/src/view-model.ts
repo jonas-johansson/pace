@@ -53,11 +53,11 @@ function activityBlock(): RenderBlock {
 /**
  * Project the complete render transcript into the selected presentation mode.
  *
- * Detailed mode returns the blocks unchanged. Focused mode keeps the newest
- * user message, the latest agent message after it (plus any error blocks in
- * between or after), and — while the agent is running — one synthetic
- * "Thinking..." activity block. The input is never mutated, so switching
- * modes mid-turn is lossless.
+ * Detailed mode returns the blocks unchanged. Focused mode collapses each
+ * user turn to its user message plus the turn's latest agent message (plus
+ * any error blocks after it), and — while the agent is running — appends one
+ * synthetic "Thinking..." activity block to the running turn. The input is
+ * never mutated, so switching modes mid-turn is lossless.
  */
 export function projectBlocksForDisplay(
   blocks: RenderBlock[],
@@ -65,37 +65,58 @@ export function projectBlocksForDisplay(
 ): RenderBlock[] {
   if (options.mode === "detailed") return blocks;
 
-  // Focus on the current conversation pair: the newest user message and
-  // everything after it. Blocks before it (earlier turns) are hidden.
-  let turnStart = 0;
-  for (let index = blocks.length - 1; index >= 0; index--) {
-    if (blocks[index].role === "user") {
-      turnStart = index;
-      break;
-    }
-  }
-
-  // Scan backward from the end: keep error blocks and the first contentful
-  // assistant block — the latest agent message — until the user message.
-  // Reasoning, tool, and meta blocks are hidden.
   const projected: RenderBlock[] = [];
-  let seenAssistant = false;
-  for (let index = blocks.length - 1; index >= turnStart; index--) {
+  let index = 0;
+
+  // Standalone UI output before the first user message (startup errors,
+  // command responses on a fresh session) stays visible.
+  while (index < blocks.length && blocks[index].role !== "user") {
     const block = blocks[index];
-    if (block.role === "error") {
-      projected.unshift(block);
-    } else if (block.role === "user") {
-      projected.unshift(block);
-      break;
-    } else if (hasVisibleAssistantContent(block) && !seenAssistant) {
-      projected.unshift(block);
-      seenAssistant = true;
+    if (block.role === "assistant" || block.role === "error") {
+      projected.push(block);
     }
+    index++;
   }
 
-  if (options.running) {
+  while (index < blocks.length) {
+    const turnStart = index;
+    let turnEnd = blocks.length;
+    for (let i = index + 1; i < blocks.length; i++) {
+      if (blocks[i].role === "user") {
+        turnEnd = i;
+        break;
+      }
+    }
+    const isRunningTurn = options.running && turnEnd === blocks.length;
+
+    projected.push(blocks[turnStart]);
+
+    // Scan backward within the turn: keep error blocks and the first
+    // contentful assistant block — the turn's final answer. Reasoning,
+    // tool, meta, and intermediate assistant narration are hidden.
+    const turnBlocks: RenderBlock[] = [];
+    let seenAssistant = false;
+    for (let i = turnEnd - 1; i > turnStart; i--) {
+      const block = blocks[i];
+      if (block.role === "error") {
+        turnBlocks.unshift(block);
+      } else if (hasVisibleAssistantContent(block) && !seenAssistant) {
+        turnBlocks.unshift(block);
+        seenAssistant = true;
+      }
+    }
+    projected.push(...turnBlocks);
+
+    if (isRunningTurn) {
+      projected.push(activityBlock());
+    }
+    index = turnEnd;
+  }
+
+  if (options.running && projected[projected.length - 1]?.id !== FOCUSED_ACTIVITY_BLOCK_ID) {
     projected.push(activityBlock());
   }
+
   return projected;
 }
 
