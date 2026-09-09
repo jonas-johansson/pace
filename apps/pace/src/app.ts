@@ -2034,6 +2034,7 @@ async function prompt(
             currentReasoningBlockId = tui.addBlock({
               role: "reasoning",
               title: reasoningDisplayTitle(accReasoning),
+              heading: currentReasoningTitle,
               content: reasoningDisplayContent(accReasoning),
               collapsed: false,
             });
@@ -2053,6 +2054,7 @@ async function prompt(
               currentReasoningBlockId = tui.addBlock({
                 role: "reasoning",
                 title: reasoningDisplayTitle(accReasoning),
+                heading: currentReasoningTitle,
                 content: reasoningDisplayContent(accReasoning),
                 collapsed: false,
               });
@@ -2060,6 +2062,7 @@ async function prompt(
               tui.updateBlock(currentReasoningBlockId, {
                 content: reasoningDisplayContent(accReasoning),
                 title: reasoningDisplayTitle(accReasoning),
+                heading: currentReasoningTitle,
               });
             }
             tui.setStatus("Thinking");

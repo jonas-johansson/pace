@@ -7,8 +7,14 @@ import {
   type RenderBlock,
 } from "../apps/pace/dist/view-model.js";
 
-function block(id: number, role: RenderBlock["role"], content: string, title?: string): RenderBlock {
-  return { id, role, content, ...(title && { title }) };
+function block(
+  id: number,
+  role: RenderBlock["role"],
+  content: string,
+  title?: string,
+  heading?: string,
+): RenderBlock {
+  return { id, role, content, ...(title && { title }), ...(heading && { heading }) };
 }
 
 test("detailed view preserves every block", () => {
@@ -62,15 +68,55 @@ test("a running turn shows the user message and the activity block before any te
   assert.equal(projected[1].state, "running");
 });
 
-test("a running turn shows the in-flight assistant message above the activity block", () => {
+test("a running turn shows the reasoning heading on the activity line", () => {
   const blocks = [
     block(1, "user", "Look"),
-    block(2, "reasoning", "secret"),
+    block(2, "reasoning", "planning the search", undefined, "Planning the search"),
     block(3, "tool", "output"),
-    block(4, "assistant", "Partial answer"),
   ];
   const projected = projectBlocksForDisplay(blocks, { mode: "focused", running: true });
-  assert.deepEqual(projected.map(({ id }) => id), [1, 4, FOCUSED_ACTIVITY_BLOCK_ID]);
+  assert.deepEqual(projected.map(({ id }) => id), [1, FOCUSED_ACTIVITY_BLOCK_ID]);
+  assert.equal(projected[1].content, "Planning the search");
+});
+
+test("a running turn falls back to the placeholder when reasoning has no heading", () => {
+  const blocks = [block(1, "user", "Look"), block(2, "reasoning", "secret"), block(3, "tool", "output")];
+  const projected = projectBlocksForDisplay(blocks, { mode: "focused", running: true });
+  assert.deepEqual(projected.map(({ id }) => id), [1, FOCUSED_ACTIVITY_BLOCK_ID]);
+  assert.equal(projected[1].content, FOCUSED_ACTIVITY_PLACEHOLDER);
+});
+
+test("the activity line is suppressed while assistant text is the latest activity", () => {
+  const blocks = [
+    block(1, "user", "Look"),
+    block(2, "reasoning", "planning", undefined, "Planning"),
+    block(3, "assistant", "Partial answer"),
+  ];
+  const projected = projectBlocksForDisplay(blocks, { mode: "focused", running: true });
+  assert.deepEqual(projected.map(({ id }) => id), [1, 3]);
+});
+
+test("a new reasoning block takes the activity line back from assistant text", () => {
+  const blocks = [
+    block(1, "user", "Look"),
+    block(2, "assistant", "Interim answer"),
+    block(3, "tool", "output"),
+    block(4, "reasoning", "next step", undefined, "Checking results"),
+  ];
+  const projected = projectBlocksForDisplay(blocks, { mode: "focused", running: true });
+  assert.deepEqual(projected.map(({ id }) => id), [1, 2, FOCUSED_ACTIVITY_BLOCK_ID]);
+  assert.equal(projected[2].content, "Checking results");
+});
+
+test("reasoning without a heading after text resets the activity line to the placeholder", () => {
+  const blocks = [
+    block(1, "user", "Look"),
+    block(2, "assistant", "Interim answer"),
+    block(3, "reasoning", "secret"),
+  ];
+  const projected = projectBlocksForDisplay(blocks, { mode: "focused", running: true });
+  assert.deepEqual(projected.map(({ id }) => id), [1, 2, FOCUSED_ACTIVITY_BLOCK_ID]);
+  assert.equal(projected[2].content, FOCUSED_ACTIVITY_PLACEHOLDER);
 });
 
 test("previous turns stay visible while a new turn runs", () => {
@@ -92,7 +138,7 @@ test("a steering user message starts a new focus segment while running", () => {
     block(4, "assistant", "Continuing"),
   ];
   const projected = projectBlocksForDisplay(blocks, { mode: "focused", running: true });
-  assert.deepEqual(projected.map(({ id }) => id), [1, 2, 3, 4, FOCUSED_ACTIVITY_BLOCK_ID]);
+  assert.deepEqual(projected.map(({ id }) => id), [1, 2, 3, 4]);
 });
 
 test("a running turn with no user message still shows the activity block", () => {

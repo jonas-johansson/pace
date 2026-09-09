@@ -6,7 +6,6 @@ import {
   formatSessionCost,
   formatTokenCount,
   FOCUSED_ACTIVITY_BLOCK_KEY,
-  FOCUSED_ACTIVITY_PLACEHOLDER,
   projectBlocksForDisplay,
   type BlockState,
   type BlockPatch,
@@ -3575,9 +3574,9 @@ function renderBlock(block: RenderBlock, columns: number, spinnerFrame: string) 
     return renderPanelToolBlock(block, columns, spinnerFrame, sanitized);
   }
 
-  // ── Focused activity: spinner + "Thinking..." line ──
+  // ── Focused activity: spinner + latest reasoning heading line ──
   if (block.key === FOCUSED_ACTIVITY_BLOCK_KEY) {
-    return renderFocusedActivityBlock(columns, spinnerFrame);
+    return renderFocusedActivityBlock(block, columns, spinnerFrame);
   }
 
   // ── Meta blocks: muted one-line turn usage summary ──
@@ -3795,14 +3794,16 @@ function renderMetaBlock(block: RenderBlock, columns: number, sanitizedContent: 
 }
 
 /**
- * Render the focused activity block: a muted spinner + "Thinking..." line,
- * shown in focused mode while the agent works.
+ * Render the focused activity block: a muted spinner plus a one-line status
+ * (the latest reasoning heading, or "Thinking..."), shown in focused mode
+ * while the agent works.
  */
-function renderFocusedActivityBlock(columns: number, spinnerFrame: string) {
+function renderFocusedActivityBlock(block: RenderBlock, columns: number, spinnerFrame: string) {
   const theme = currentTheme.blocks.meta;
   const indicator = renderInlineStateIndicator("running", spinnerFrame);
-  const text = FOCUSED_ACTIVITY_PLACEHOLDER;
-  const visible = (indicator ? displayWidth(indicator.text) + 1 : 0) + displayWidth(text);
+  const indicatorWidth = indicator ? displayWidth(indicator.text) + 1 : 0;
+  const text = truncateToWidth(block.content, Math.max(1, columns - 4 - indicatorWidth));
+  const visible = indicatorWidth + displayWidth(text);
   const rightPad = Math.max(0, columns - 2 - visible);
   const indicatorRendered = indicator ? `${indicator.rendered} ` : "";
   return [

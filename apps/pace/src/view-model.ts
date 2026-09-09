@@ -20,12 +20,14 @@ export type RenderBlock = {
   key?: string;
   role: BlockRole;
   title?: string;
+  /** Raw heading extracted from reasoning narration, if any (unlike `title`, has no display prefix). */
+  heading?: string;
   content: string;
   collapsed?: boolean;
   state?: BlockState;
 };
 
-export type BlockPatch = Partial<Pick<RenderBlock, "title" | "content" | "state" | "collapsed">>;
+export type BlockPatch = Partial<Pick<RenderBlock, "title" | "heading" | "content" | "state" | "collapsed">>;
 
 export type ContextInfo = {
   usedTokens: number;
@@ -40,14 +42,34 @@ function hasVisibleAssistantContent(block: RenderBlock): boolean {
   return block.role === "assistant" && Boolean(block.title || block.content.trim());
 }
 
-function activityBlock(): RenderBlock {
+function activityBlock(activity?: string): RenderBlock {
   return {
     id: FOCUSED_ACTIVITY_BLOCK_ID,
     key: FOCUSED_ACTIVITY_BLOCK_KEY,
     role: "assistant",
-    content: FOCUSED_ACTIVITY_PLACEHOLDER,
+    content: activity ?? FOCUSED_ACTIVITY_PLACEHOLDER,
     state: "running",
   };
+}
+
+/**
+ * Current activity for a running turn, derived from the blocks streamed so
+ * far: the latest reasoning block's extracted heading, or the placeholder
+ * when the agent is reasoning without one. Returns null when the latest
+ * activity is assistant text — the focused view already shows that block,
+ * so echoing it on the activity line would duplicate it.
+ */
+function activityForTurn(blocks: RenderBlock[], turnStart: number, turnEnd: number): string | null {
+  for (let i = turnEnd - 1; i > turnStart; i--) {
+    const block = blocks[i];
+    if (block.role === "reasoning") {
+      return block.heading?.trim() || FOCUSED_ACTIVITY_PLACEHOLDER;
+    }
+    if (block.role === "assistant" && block.content.trim()) {
+      return null;
+    }
+  }
+  return FOCUSED_ACTIVITY_PLACEHOLDER;
 }
 
 /**
@@ -55,9 +77,12 @@ function activityBlock(): RenderBlock {
  *
  * Detailed mode returns the blocks unchanged. Focused mode collapses each
  * user turn to its user message plus the turn's latest agent message (plus
- * any error blocks after it), and — while the agent is running — appends one
- * synthetic "Thinking..." activity block to the running turn. The input is
- * never mutated, so switching modes mid-turn is lossless.
+ * any error blocks after it), and — while the agent is running — appends a
+ * synthetic activity line to the running turn showing what the agent is
+ * working on (the latest reasoning heading, or a "Thinking..." placeholder).
+ * The line is suppressed while assistant text is the latest activity, since
+ * the focused view already shows that text block. The input is never
+ * mutated, so switching modes mid-turn is lossless.
  */
 export function projectBlocksForDisplay(
   blocks: RenderBlock[],
@@ -66,6 +91,7 @@ export function projectBlocksForDisplay(
   if (options.mode === "detailed") return blocks;
 
   const projected: RenderBlock[] = [];
+  let appendedActivity = false;
   let index = 0;
 
   // Standalone UI output before the first user message (startup errors,
@@ -108,13 +134,22 @@ export function projectBlocksForDisplay(
     projected.push(...turnBlocks);
 
     if (isRunningTurn) {
-      projected.push(activityBlock());
+      appendedActivity = true;
+      const activity = activityForTurn(blocks, turnStart, turnEnd);
+      if (activity !== null) {
+        projected.push(activityBlock(activity));
+      }
     }
     index = turnEnd;
   }
 
-  if (options.running && projected[projected.length - 1]?.id !== FOCUSED_ACTIVITY_BLOCK_ID) {
-    projected.push(activityBlock());
+  if (options.running && !appendedActivity) {
+    // No user turn to anchor to (fresh session, startup output): derive the
+    // activity from whatever blocks exist.
+    const activity = activityForTurn(blocks, -1, blocks.length);
+    if (activity !== null) {
+      projected.push(activityBlock(activity));
+    }
   }
 
   return projected;
