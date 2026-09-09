@@ -8,7 +8,7 @@ Add a distraction-free display mode alongside today's complete transcript:
 ⠙ Thinking...
 ```
 
-While the agent works, focused mode shows a single muted `Thinking...` line (plus the in-flight streamed message once text arrives). When the loop completes, only the final assistant response remains. Users can switch instantly between this view and today's complete transcript, including while an agent is running.
+While the agent works, focused mode shows the newest user message and a single muted `Thinking...` line (plus the in-flight streamed message once text arrives). When the loop completes, the user message and the final assistant response remain. Users can switch instantly between this view and today's complete transcript, including while an agent is running.
 
 ## Product decisions
 
@@ -24,10 +24,11 @@ While the agent works, focused mode shows a single muted `Thinking...` line (plu
 
 - **Detailed mode** renders every block exactly as it does today — the projection returns the block list unchanged.
 - **Focused mode** renders only:
-  1. The latest agent message: the last assistant block with visible content (title or non-whitespace text).
-  2. Error blocks that appear after that message (failed commands, prompt errors), so failures are never hidden.
-  3. One synthetic `Thinking...` activity row whenever `Tui.running` is true. The normal spinner animates it; the unchanged status bar continues to report compaction, retries, and tool progress.
-- User prompts, reasoning, tool, meta, and intermediate assistant blocks are hidden. While running, the scan is scoped to the current turn (after the newest user message), so earlier turns collapse too.
+  1. The newest user message.
+  2. The latest agent message: the last assistant block with visible content (title or non-whitespace text) after that user message.
+  3. Error blocks between or after them, so failures are never hidden.
+  4. One synthetic `Thinking...` activity row whenever `Tui.running` is true. The normal spinner animates it; the unchanged status bar continues to report compaction, retries, and tool progress.
+- Reasoning, tool, meta, and earlier turns are hidden. Intermediate assistant narration is hidden once a later message arrives; each steering user message starts a new focus segment.
 - Completion/cancellation/error blocks are regular assistant/error blocks, so the projection reveals the outcome automatically when `running` flips false — no special-casing.
 - `!command` output is a tool block and is therefore not shown in focused mode; Ctrl+G reveals it.
 - Mode changes reset scroll/selection state; block-click mappings are rebuilt from the projected rows.
@@ -62,7 +63,7 @@ Mode ownership lives in `app.ts` (persisted application preference). Projection 
 `test/focused-view.test.ts` against pure exports from `apps/pace/dist/view-model.js`:
 
 1. Detailed projection returns the identical block list.
-2. Focused projection shows only the latest agent message.
+2. Focused projection shows the newest user message and the latest agent message.
 3. Whitespace-only assistant blocks are skipped; titled blocks count as visible.
 4. A running turn collapses to the activity block before text streams, and shows the in-flight message above it once text arrives.
 5. A running turn with no user message still shows the activity block.
@@ -81,7 +82,7 @@ Mode ownership lives in `app.ts` (persisted application preference). Projection 
 ## Acceptance criteria
 
 - A new installation starts in focused mode; the saved mode survives restart.
-- While a prompt runs, focused mode shows `Thinking...` (animated) and the in-flight streamed message, regardless of reasoning/tool volume.
+- While a prompt runs, focused mode shows the user message, `Thinking...` (animated), and the in-flight streamed message, regardless of reasoning/tool volume.
 - Completion replaces the view with the final assistant response; errors and cancellations remain visible.
 - Ctrl+G and `/view focused|detailed` switch immediately, including mid-turn; detailed mode is behaviorally identical to master.
 - Sessions written in either mode are structurally identical; no schema change.

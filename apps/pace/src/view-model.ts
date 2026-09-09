@@ -53,10 +53,11 @@ function activityBlock(): RenderBlock {
 /**
  * Project the complete render transcript into the selected presentation mode.
  *
- * Detailed mode returns the blocks unchanged. Focused mode keeps only the
- * latest agent message (plus any error blocks that came after it) and, while
- * the agent is running, appends one synthetic "Thinking..." activity block.
- * The input is never mutated, so switching modes mid-turn is lossless.
+ * Detailed mode returns the blocks unchanged. Focused mode keeps the newest
+ * user message, the latest agent message after it (plus any error blocks in
+ * between or after), and — while the agent is running — one synthetic
+ * "Thinking..." activity block. The input is never mutated, so switching
+ * modes mid-turn is lossless.
  */
 export function projectBlocksForDisplay(
   blocks: RenderBlock[],
@@ -64,29 +65,31 @@ export function projectBlocksForDisplay(
 ): RenderBlock[] {
   if (options.mode === "detailed") return blocks;
 
-  // While running, focus on the current turn (after the newest user message);
-  // when idle, the whole transcript collapses to its latest message.
+  // Focus on the current conversation pair: the newest user message and
+  // everything after it. Blocks before it (earlier turns) are hidden.
   let turnStart = 0;
-  if (options.running) {
-    for (let index = blocks.length - 1; index >= 0; index--) {
-      if (blocks[index].role === "user") {
-        turnStart = index + 1;
-        break;
-      }
+  for (let index = blocks.length - 1; index >= 0; index--) {
+    if (blocks[index].role === "user") {
+      turnStart = index;
+      break;
     }
   }
 
-  // Scan backward from the end: keep error blocks, stop at the first
-  // contentful assistant block — the latest agent message. Reasoning, tool,
-  // meta, and user blocks are hidden.
+  // Scan backward from the end: keep error blocks and the first contentful
+  // assistant block — the latest agent message — until the user message.
+  // Reasoning, tool, and meta blocks are hidden.
   const projected: RenderBlock[] = [];
+  let seenAssistant = false;
   for (let index = blocks.length - 1; index >= turnStart; index--) {
     const block = blocks[index];
     if (block.role === "error") {
       projected.unshift(block);
-    } else if (hasVisibleAssistantContent(block)) {
+    } else if (block.role === "user") {
       projected.unshift(block);
       break;
+    } else if (hasVisibleAssistantContent(block) && !seenAssistant) {
+      projected.unshift(block);
+      seenAssistant = true;
     }
   }
 
