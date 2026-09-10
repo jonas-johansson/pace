@@ -176,7 +176,7 @@ Configure it under the `compaction` key (all fields optional):
 {
   "compaction": {
     "auto": true,
-    "thresholdTokens": 150000,
+    "thresholdTokens": 250000,
     "keepRecentTokens": 20000,
     "model": "opencode/deepseek-v4-flash:nothink"
   }
@@ -184,7 +184,7 @@ Configure it under the `compaction` key (all fields optional):
 ```
 
 - `auto` — enable auto-compaction (default `true`)
-- `thresholdTokens` — context size that triggers compaction, clamped to the model's window (default `150000`)
+- `thresholdTokens` — context size that triggers compaction, clamped to the model's window (default `250000`)
 - `keepRecentTokens` — approximate size of the recent context kept verbatim (default `20000`)
 - `model` — summarizer model override; defaults to the current model for cache sharing
 

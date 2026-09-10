@@ -47,7 +47,7 @@ export const DEFAULT_COST_DISPLAY_CONFIG: CostDisplayConfig = {
 
 export const DEFAULT_COMPACTION_CONFIG: CompactionConfig = {
   auto: true,
-  thresholdTokens: 150_000,
+  thresholdTokens: 250_000,
   keepRecentTokens: 20_000,
 };
 
