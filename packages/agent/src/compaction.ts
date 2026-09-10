@@ -247,6 +247,8 @@ export type SummarizeForCompactionParams = {
   /** User focus instructions passed to `/compact`. */
   focus?: string;
   signal?: AbortSignal;
+  /** Stable conversation identifier forwarded to the provider (session affinity). */
+  sessionId?: string;
 };
 
 function responseText(content: ProviderResponse["content"]): string {
@@ -284,6 +286,7 @@ export async function summarizeForCompaction(
       maxTokens: params.maxTokens,
       providerOptions: params.providerOptions,
       signal: params.signal,
+      sessionId: params.sessionId,
     });
     for await (const _event of stream) {
       // Consume the stream so finalMessage() can return the complete response.

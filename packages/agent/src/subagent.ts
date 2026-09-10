@@ -6,6 +6,7 @@
  * exploration and tool noise out of the parent context.
  */
 
+import { randomUUID } from "crypto";
 import type { ContentBlock, ProviderMessage } from "@pace/llm";
 import type { ModelConfig, Provider, ToolDefinition } from "@pace/llm";
 import type { ToolDescriptor } from "./tools/core";
@@ -69,6 +70,7 @@ export async function runSubagent(params: SubagentRunParams): Promise<SubagentRe
     maxTokens: params.modelConfig.maxOutputTokens,
     providerOptions: params.modelConfig.providerOptions,
     signal: params.signal,
+    sessionId: `subagent-${randomUUID()}`,
     maxTurns: params.maxTurns ?? DEFAULT_MAX_SUBAGENT_TURNS,
 
     getMessages: () => {

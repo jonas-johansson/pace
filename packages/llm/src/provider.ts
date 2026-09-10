@@ -151,5 +151,12 @@ export interface Provider {
     /** Provider-native options for the selected model variant. */
     providerOptions?: Record<string, unknown>;
     signal?: AbortSignal;
+    /**
+     * Stable identifier for the current conversation, when the caller tracks
+     * one. Providers that support session affinity (e.g. OpenCode Go's
+     * `x-opencode-session`) use it for routing and prompt caching; others
+     * ignore it.
+     */
+    sessionId?: string;
   }): Promise<ProviderStream>;
 }

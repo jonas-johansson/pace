@@ -153,6 +153,24 @@ const DEEPSEEK_VARIANTS: Record<string, ModelVariant> = {
   },
 };
 
+const DEEPSEEK_V4_1_VARIANTS: Record<string, ModelVariant> = {
+  low: {
+    id: "low",
+    label: "reasoning effort: low",
+    providerOptions: { reasoning_effort: "low" },
+  },
+  high: {
+    id: "high",
+    label: "reasoning effort: high",
+    providerOptions: { reasoning_effort: "high" },
+  },
+  max: {
+    id: "max",
+    label: "reasoning effort: max",
+    providerOptions: { reasoning_effort: "max" },
+  },
+};
+
 const GLM_5_2_REASONING_VARIANTS: Record<string, ModelVariant> = {
   high: {
     id: "high",
@@ -440,6 +458,19 @@ export const MODEL_METADATA: Record<string, ModelMetadata> = {
     supportsImages: false,
     variants: DEEPSEEK_VARIANTS,
     pricing: ZERO_PRICING,
+  },
+  "opencode/deepseek-v4.1-flash": {
+    contextWindow: 1_000_000,
+    maxOutputTokens: 384_000,
+    supportsImages: true,
+    providerModel: "deepseek-flash",
+    variants: DEEPSEEK_V4_1_VARIANTS,
+    pricing: {
+      inputPerMTok: 0.15,
+      cacheWritePerMTok: 0,
+      cacheReadPerMTok: 0.003,
+      outputPerMTok: 0.60,
+    },
   },
   "opencode/glm-5.2": {
     contextWindow: 1_000_000,

@@ -527,6 +527,7 @@ export async function runHeadless(argv: string[], io: HeadlessIo = {}): Promise<
           },
           maxTokens: Math.min(summarizerConfig.maxOutputTokens, 16_000),
           messages: plan.messagesToSummarize,
+          sessionId: session.id,
         });
 
         const cost = computeCallCost(
@@ -584,6 +585,7 @@ export async function runHeadless(argv: string[], io: HeadlessIo = {}): Promise<
             && { supportsImages: modelConfig.supportsImages }),
         },
         signal: abortController.signal,
+        sessionId: session.id,
         maxTurns: args.maxTurns,
 
         compaction: compactionThreshold === undefined ? undefined : {

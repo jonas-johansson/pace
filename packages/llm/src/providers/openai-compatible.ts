@@ -45,6 +45,13 @@ export type OpenAiCompatibleProviderOptions = {
   useFetchRetry?: boolean;
   extraHeaders?: Record<string, string>;
   /**
+   * Header name used to send the conversation's session id (from
+   * `stream()`'s `sessionId` param). When set and a session id is available,
+   * the header is added to every request. No header is sent without a
+   * session id.
+   */
+  sessionHeader?: string;
+  /**
    * Maximum number of images accepted per request. When set, only the most
    * recent `maxImages` images are sent; older ones (in history or tool
    * results) are replaced with text placeholders.
@@ -554,6 +561,7 @@ export class OpenAiCompatibleProvider implements Provider {
     maxTokens: number;
     providerOptions?: Record<string, unknown>;
     signal?: AbortSignal;
+    sessionId?: string;
   }): Promise<ProviderStream> {
     const options = this.options;
 
@@ -600,6 +608,9 @@ export class OpenAiCompatibleProvider implements Provider {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
       ...(options.extraHeaders ?? {}),
+      ...(options.sessionHeader !== undefined && params.sessionId !== undefined
+        ? { [options.sessionHeader]: params.sessionId }
+        : {}),
     };
     if (options.apiKey !== undefined) {
       headers["Authorization"] = `Bearer ${options.apiKey}`;

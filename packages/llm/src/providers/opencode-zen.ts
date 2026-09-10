@@ -21,6 +21,10 @@ export class OpenCodeZenProvider extends OpenAiCompatibleProvider {
       missingKeyMessage:
         "Missing API key for OpenCode Zen. Set the OPENCODE_ZEN_API_KEY or OPENCODE_API_KEY environment variable.",
       baseUrl: options?.baseUrl ?? process.env.OPENCODE_ZEN_BASE_URL ?? DEFAULT_BASE_URL,
+      // OpenCode endpoints (Zen and especially Go) use this header for
+      // routing and prompt-cache affinity; the Go endpoint rejects requests
+      // without it.
+      sessionHeader: "x-opencode-session",
     });
   }
 }

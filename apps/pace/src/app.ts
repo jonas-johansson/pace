@@ -711,6 +711,7 @@ function maybeGenerateSessionTitleFromFirstMessage(
           ...(modelConfig.providerOptions ?? {}),
           ...(modelVariant?.providerOptions ?? {}),
         },
+        sessionId,
       });
 
       for await (const _event of stream) {
@@ -852,6 +853,7 @@ async function compactContext(opts: {
     messages: plan.messagesToSummarize,
     focus: opts.focus,
     signal: opts.signal,
+    sessionId: activeSession.id,
   });
 
   const cost = computeCallCost(
@@ -1878,6 +1880,7 @@ async function prompt(
           && { supportsImages: modelConfig.supportsImages }),
       },
       signal,
+      sessionId: activeSession.id,
 
       compaction: (() => {
         const threshold = effectiveCompactionThreshold(

@@ -56,6 +56,8 @@ export type AgentLoopParams = {
   maxTokens: number;
   providerOptions?: Record<string, unknown>;
   signal?: AbortSignal;
+  /** Stable conversation identifier forwarded to the provider (session affinity). */
+  sessionId?: string;
   /** Maximum assistant turns. Unlimited when omitted. */
   maxTurns?: number;
 
@@ -262,6 +264,7 @@ export async function runAgentLoop(params: AgentLoopParams): Promise<AgentLoopRe
       maxTokens: params.maxTokens,
       providerOptions: params.providerOptions,
       signal: params.signal,
+      sessionId: params.sessionId,
     });
 
     // Start timing when the request is issued so downstream TPS stats

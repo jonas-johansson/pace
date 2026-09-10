@@ -73,6 +73,7 @@ Pace ships with a curated built-in model catalog and also loads new models from 
 | `opencode/deepseek-v4-pro` |
 | `opencode/deepseek-v4-flash` |
 | `opencode/deepseek-v4-flash-free` |
+| `opencode/deepseek-v4.1-flash` |
 | `opencode/glm-5.2` |
 | `opencode/glm-5.3` |
 | `opencode/glm-5.3-flash` |

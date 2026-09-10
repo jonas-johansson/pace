@@ -95,6 +95,11 @@ export async function resolveProvider(config: ModelConfig): Promise<Provider> {
         // OPENCODE_GO_BASE_URL. Free variants always use the Zen endpoint.
         return getOpenCodeGoProvider();
       }
+      if (config.providerModel === "deepseek-flash") {
+        // DeepSeek V4.1 Flash is served by the OpenCode Go Chat Completions
+        // endpoint, not the regular Zen endpoint.
+        return getOpenCodeGoProvider();
+      }
       if (config.providerModel === "kimi-k3") {
         // Kimi K3 is served by the OpenCode Go Chat Completions endpoint,
         // not the regular Zen endpoint.
