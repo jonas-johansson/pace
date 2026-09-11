@@ -90,7 +90,7 @@ import { readClipboardImage, type SupportedImageMediaType } from "./clipboard";
 import { sendDesktopNotification } from "./notify";
 import { onEvent, resolveProvider } from "@pace/llm";
 import { loadPaceConfig, effectiveCompactionThreshold, DEFAULT_COST_DISPLAY_CONFIG, DEFAULT_COMPACTION_CONFIG, DEFAULT_TOOL_PROGRESS_CONFIG, type CostDisplayConfig, type CompactionConfig, type ToolProgressConfig } from "./config";
-import { STREAM_TITLE_UPDATE_MS, streamingToolTitle } from "./tool-progress";
+import { appendStreamedToolContent, STREAM_TITLE_UPDATE_MS, streamingToolTitle } from "./tool-progress";
 import {
   assembleSystemText,
   computeCallCost,
@@ -2131,10 +2131,16 @@ async function prompt(
 
       onToolOutput: (toolUseId, chunk) => {
         const blockId = toolBlocks.get(toolUseId);
-        if (blockId !== undefined) {
-          streamedToolContentByTool.set(toolUseId, (streamedToolContentByTool.get(toolUseId) ?? "") + chunk);
-          tui.updateBlock(blockId, { content: streamedToolContentByTool.get(toolUseId) ?? "" });
+        if (blockId === undefined) {
+          return;
         }
+        const current = streamedToolContentByTool.get(toolUseId) ?? "";
+        const next = appendStreamedToolContent(current, chunk);
+        if (next === current) {
+          return;
+        }
+        streamedToolContentByTool.set(toolUseId, next);
+        tui.updateBlock(blockId, { content: next });
       },
 
       onToolContent: (toolUseId, content) => {

@@ -1,13 +1,14 @@
 /**
  * Tests for streaming tool-call progress: the live streaming tool title
- * (raw byte counter and on/off behavior).
+ * (raw byte counter and on/off behavior) and the capped live tool-output
+ * preview.
  *
  * Run with: npm test (build first: npm run build)
  */
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { streamingToolTitle } from "../apps/pace/dist/tool-progress.js";
+import { appendStreamedToolContent, MAX_STREAMED_TOOL_CONTENT_CHARS, streamingToolTitle } from "../apps/pace/dist/tool-progress.js";
 
 // ── streamingToolTitle ───────────────────────────────────────────────────────
 
@@ -82,4 +83,40 @@ test("streamingToolTitle handles unparsable partial JSON", () => {
   });
   assert.ok(title.startsWith("write:"));
   assert.ok(title.endsWith("· 256 B"));
+});
+
+// ── appendStreamedToolContent ───────────────────────────────────────────────
+
+test("appendStreamedToolContent appends chunks below the cap", () => {
+  assert.equal(appendStreamedToolContent("hello ", "world"), "hello world");
+});
+
+test("appendStreamedToolContent keeps the most recent characters once over the cap", () => {
+  const current = "a".repeat(MAX_STREAMED_TOOL_CONTENT_CHARS);
+  const next = appendStreamedToolContent(current, "b".repeat(10));
+  assert.equal(next.length, MAX_STREAMED_TOOL_CONTENT_CHARS);
+  assert.equal(next, "a".repeat(MAX_STREAMED_TOOL_CONTENT_CHARS - 10) + "b".repeat(10));
+});
+
+test("appendStreamedToolContent caps a single oversized chunk", () => {
+  const next = appendStreamedToolContent("", "x".repeat(MAX_STREAMED_TOOL_CONTENT_CHARS + 1234));
+  assert.equal(next.length, MAX_STREAMED_TOOL_CONTENT_CHARS);
+  assert.equal(next, "x".repeat(MAX_STREAMED_TOOL_CONTENT_CHARS));
+});
+
+test("appendStreamedToolContent never exceeds the cap", () => {
+  let content = "";
+  for (let i = 0; i < 100; i++) {
+    content = appendStreamedToolContent(content, "y".repeat(4096));
+    assert.ok(content.length <= MAX_STREAMED_TOOL_CONTENT_CHARS);
+  }
+  assert.equal(content.length, MAX_STREAMED_TOOL_CONTENT_CHARS);
+});
+
+test("appendStreamedToolContent does not start the preview mid surrogate pair", () => {
+  const emoji = "\u{1f600}"; // two UTF-16 code units
+  const current = `a${emoji}${"b".repeat(MAX_STREAMED_TOOL_CONTENT_CHARS - 1)}`;
+  const next = appendStreamedToolContent("", current);
+  assert.equal(next.length, MAX_STREAMED_TOOL_CONTENT_CHARS - 1);
+  assert.equal(next, "b".repeat(MAX_STREAMED_TOOL_CONTENT_CHARS - 1));
 });
