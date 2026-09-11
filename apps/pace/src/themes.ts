@@ -1,8 +1,10 @@
+import { type TuiColor } from "./color.js";
+
 export type BlockRole = "user" | "assistant" | "reasoning" | "tool" | "error" | "meta";
 
 export type BlockTheme = {
   fg: number;
-  bg: number;
+  bg: TuiColor;
   accent: number;
   bold: number;
 };
@@ -32,7 +34,7 @@ export type TuiTheme = {
   name: string;
   blocks: Record<BlockRole, BlockTheme> & { inlineTool: BlockTheme };
   syntax: SyntaxTheme;
-  canvas: { bg: number; panelBg: number };
+  canvas: { bg: TuiColor; panelBg: number };
   overlay: { bg: number; chromeBg: number; selBg: number; fg: number; dimFg: number; brightFg: number };
   suggestion: { bg: number };
   status: {
@@ -137,4 +139,21 @@ export const BUILT_IN_THEMES: Record<string, TuiTheme> = {
  */
 export function resolveTheme(name: string): TuiTheme {
   return BUILT_IN_THEMES[name] ?? BUILT_IN_THEMES.dark;
+}
+
+/**
+ * Return a copy of the theme with the canvas background replaced. Block roles
+ * whose background matches the canvas in the built-in themes (assistant
+ * messages, reasoning, meta, inline tool lines) are designed to render
+ * directly on it, so they follow the new background. Distinct surfaces (user
+ * cards, tool panels, error blocks, status, overlays) keep their colors.
+ */
+export function withCanvasBackground(theme: TuiTheme, bg: TuiColor): TuiTheme {
+  const blocks = { ...theme.blocks };
+  for (const role of Object.keys(blocks) as (keyof typeof blocks)[]) {
+    if (blocks[role].bg === theme.canvas.bg) {
+      blocks[role] = { ...blocks[role], bg };
+    }
+  }
+  return { ...theme, blocks, canvas: { ...theme.canvas, bg } };
 }

@@ -106,10 +106,10 @@ import {
   estimateBase64Size,
 } from "./image-cap";
 import { runHeadless } from "./headless";
-import { resolveTheme } from "./themes";
+import { resolveTheme, withCanvasBackground } from "./themes";
 import { setTuiTheme } from "./tui";
 import { setShikiTheme } from "./syntax";
-import { detectTerminalBackground } from "./terminal-utils";
+import { detectTerminalBackground, readOmarchyBackground } from "./terminal-utils";
 import { loadPreferences, savePreferences } from "./preferences";
 import { loadCachedModelCatalog, refreshModelCatalog } from "@pace/llm";
 import {
@@ -622,7 +622,13 @@ function formatErrorMessage(error: unknown) {
 }
 
 function applyTheme(themeName: string, showStatus = false) {
-  const newTheme = resolveTheme(themeName);
+  const baseTheme = resolveTheme(themeName);
+  // Only the canvas background follows the active Omarchy theme. Block roles
+  // that render directly on the canvas (agent messages, reasoning, meta,
+  // inline tool lines) move with it; every other color keeps using the
+  // built-in dark/light palette.
+  const omarchyBg = readOmarchyBackground();
+  const newTheme = omarchyBg ? withCanvasBackground(baseTheme, omarchyBg) : baseTheme;
   setTuiTheme(newTheme);
   tui.invalidateRenderCache();
   // Fire-and-forget: Shiki theme loading is non-critical for TUI rendering.

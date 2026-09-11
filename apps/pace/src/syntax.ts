@@ -199,38 +199,6 @@ export function getCurrentShikiTheme(): string {
 }
 
 // ---------------------------------------------------------------------------
-// Hex → ANSI 256-color conversion
-// ---------------------------------------------------------------------------
-
-/**
- * Map a CSS hex color (e.g. "#569CD6") to the nearest ANSI 256-color index.
- * Uses the 6×6×6 RGB cube (indices 16–231) and the 24-step grayscale ramp
- * (indices 232–255).
- */
-export function hexToAnsi256(hex: string): number {
-  const c = hex.replace("#", "");
-  const full = c.length === 3 ? c.split("").map((x) => x + x).join("") : c;
-
-  const r = parseInt(full.slice(0, 2), 16);
-  const g = parseInt(full.slice(2, 4), 16);
-  const b = parseInt(full.slice(4, 6), 16);
-
-  // Grayscale ramp (232–255): use when all channels are close to each other.
-  if (Math.abs(r - g) < 10 && Math.abs(g - b) < 10) {
-    if (r < 8)   return 16;   // nearest black in color cube
-    if (r > 248) return 231;  // nearest white in color cube
-    return Math.round(((r - 8) / 247) * 24) + 232;
-  }
-
-  // 6×6×6 color cube (16–231): channel steps are 0, 95, 135, 175, 215, 255.
-  const steps = [0, 95, 135, 175, 215, 255];
-  const nearest = (v: number) =>
-    steps.reduce((best, s, i) => (Math.abs(s - v) < Math.abs(steps[best] - v) ? i : best), 0);
-
-  return 16 + 36 * nearest(r) + 6 * nearest(g) + nearest(b);
-}
-
-// ---------------------------------------------------------------------------
 // Shiki tokenization path
 // ---------------------------------------------------------------------------
 

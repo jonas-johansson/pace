@@ -244,16 +244,16 @@ While a tool call's arguments stream in from the model (for example the content 
 
 ## Omarchy theme synchronization
 
-Pace detects the active Omarchy theme background and uses its built-in dark or light theme. To update a running Pace session when Omarchy changes theme, install the included hook once from the Pace repository:
+Pace detects the active Omarchy theme background, uses its built-in dark or light theme for the interface, and paints the canvas with the theme's exact background color. To update a running Pace session when Omarchy changes theme, install the included hook once from the Pace repository:
 
 ```sh
 install -Dm755 scripts/omarchy-theme-set-pace-hook \
   "$HOME/.config/omarchy/hooks/theme-set.d/pace-theme"
 ```
 
-The hook sends Pace `SIGUSR2` after Omarchy changes its theme. Pace then reads `~/.config/omarchy/current/theme/colors.toml` and updates without a restart. The hook does not modify Pace configuration.
+The hook sends Pace `SIGUSR2` after Omarchy changes its theme. Pace then reads the active theme from `~/.local/state/omarchy/current/theme/colors.toml` (falling back to `~/.config/omarchy/current/theme/colors.toml` on older Omarchy versions) and updates without a restart. The hook does not modify Pace configuration.
 
-Pace follows the Omarchy dark or light mode. It does not copy individual Omarchy accent colors. A manual `/theme dark` or `/theme light` selection remains active until the next Omarchy theme change.
+Pace follows the Omarchy dark or light mode and copies the theme's `background` color onto the canvas, including the inline text areas that sit on it (agent messages, reasoning, meta, and inline tool lines). The background is painted as 24-bit color when the terminal supports it and as the nearest 256-color index otherwise; set `PACE_TRUECOLOR=0` or `PACE_TRUECOLOR=1` to force either mode. All other colors keep using the built-in dark or light palette, and individual Omarchy accent colors are not copied. A manual `/theme dark` or `/theme light` selection remains active until the next Omarchy theme change.
 
 ## Subagents
 

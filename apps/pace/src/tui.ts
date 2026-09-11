@@ -17,7 +17,8 @@ import {
 import { homedir } from "os";
 import { basename } from "path";
 import { type CostDisplayConfig } from "./config";
-import { tokenizeCode, hexToAnsi256, onHighlighterReady } from "./syntax.js";
+import { tokenizeCode, onHighlighterReady } from "./syntax.js";
+import { bgSgr, hexToAnsi256, supportsTruecolor, type TuiColor } from "./color.js";
 import { fuzzyMatch } from "./fuzzy.js";
 
 type SubmitHandler = (input: string) => void | Promise<void>;
@@ -2987,7 +2988,10 @@ export class Tui {
     const label = starPrefix + innerLabel;
     const text = truncateToWidth(label, Math.max(1, columns - 2));
     const visible = displayWidth(text);
-    const totalPad = Math.max(0, columns - 2 - visible);
+    // Pad over the full terminal width so the row's background reaches the
+    // right edge. (Only the *label* leaves a two-cell margin here; the row
+    // itself must always cover `columns` cells.)
+    const totalPad = Math.max(0, columns - visible);
     const leftPad = Math.floor(totalPad / 2);
     const rightPad = totalPad - leftPad;
     const content = this.sessionStarred
@@ -3895,19 +3899,32 @@ function renderErrorBlock(block: RenderBlock, columns: number, sanitizedContent:
   return rows.map((row) => renderBlockRow(row, theme, columns));
 }
 
-/** Truncate text to fit within a given display width. */
+/**
+ * Truncate text to fit within a given display width, appending an ellipsis
+ * when characters are dropped. The ellipsis takes one cell, so the result
+ * never exceeds `maxWidth`.
+ */
 function truncateToWidth(text: string, maxWidth: number): string {
+  if (maxWidth <= 0) {
+    return "";
+  }
+  if (displayWidth(text) <= maxWidth) {
+    return text;
+  }
+
+  // Reserve one cell for the ellipsis, then keep the longest prefix that fits.
+  const prefixLimit = maxWidth - 1;
   let width = 0;
   let byteIndex = 0;
   for (const char of text) {
     const w = charWidth(char);
-    if (width + w > maxWidth) {
-      return text.substring(0, byteIndex) + "…";
+    if (width + w > prefixLimit) {
+      break;
     }
     width += w;
     byteIndex += char.length;
   }
-  return text;
+  return text.substring(0, byteIndex) + "…";
 }
 
 function renderStateIndicator(
@@ -5046,10 +5063,12 @@ function formatContextInfo(info: ContextInfo): string {
   return `${prefix}${used} (${percent}%)`;
 }
 
+const TRUECOLOR = supportsTruecolor();
+
 function fg(code: number) {
   return `\x1b[38;5;${code}m`;
 }
 
-function bg(code: number) {
-  return `\x1b[48;5;${code}m`;
+function bg(code: TuiColor) {
+  return bgSgr(code, TRUECOLOR);
 }

@@ -10,6 +10,7 @@ import { existsSync, readFileSync } from "fs";
 import { execSync } from "child_process";
 import { homedir } from "os";
 import { join as pathJoin } from "path";
+import { parseHex } from "./color.js";
 
 // ── Colour / luminance helpers ───────────────────────────────────────────────
 
@@ -27,10 +28,37 @@ function classify(r: number, g: number, b: number, threshold = 0.5): "light" | "
   return luminance(r, g, b) > threshold ? "light" : "dark";
 }
 
-/** Parse "#RRGGBB" (with or without #) → [R, G, B] or null. */
-function parseHex(hex: string): [number, number, number] | null {
-  const m = hex.replace(/^#/, "").match(/^([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})$/);
-  return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : null;
+// ── Omarchy ──────────────────────────────────────────────────────────────────
+
+/** Candidate locations of the active Omarchy theme's colors.toml. */
+function omarchyColorsPaths(home: string, env: NodeJS.ProcessEnv): string[] {
+  const stateDir = env.XDG_STATE_HOME ?? pathJoin(home, ".local", "state");
+  const configDir = env.XDG_CONFIG_HOME ?? pathJoin(home, ".config");
+  return [
+    pathJoin(stateDir, "omarchy", "current", "theme", "colors.toml"),
+    pathJoin(configDir, "omarchy", "current", "theme", "colors.toml"),
+  ];
+}
+
+/**
+ * The active Omarchy theme's background color as "#rrggbb", or null when no
+ * Omarchy theme is installed. Synchronous; parameters are injectable for tests.
+ */
+export function readOmarchyBackground(
+  home: string = homedir(),
+  env: NodeJS.ProcessEnv = process.env,
+): string | null {
+  for (const colorsPath of omarchyColorsPaths(home, env)) {
+    try {
+      if (!existsSync(colorsPath)) continue;
+      const content = readFileSync(colorsPath, "utf-8");
+      const m = content.match(/^\s*background\s*=\s*"#([0-9a-fA-F]{6})"/m);
+      if (m) return `#${m[1].toLowerCase()}`;
+    } catch {
+      // ignore
+    }
+  }
+  return null;
 }
 
 // ── Terminal-emulator config files ───────────────────────────────────────────
@@ -40,17 +68,10 @@ function fromTerminalConfig(): "light" | "dark" | null {
   const xdg = process.env.XDG_CONFIG_HOME ?? pathJoin(home, ".config");
 
   // ── omarchy theme (takes precedence — it's the active theme source) ──
-  try {
-    const omarchyTheme = pathJoin(xdg, "omarchy", "current", "theme", "colors.toml");
-    if (existsSync(omarchyTheme)) {
-      const content = readFileSync(omarchyTheme, "utf-8");
-      const m = content.match(
-        /^\s*background\s*=\s*"#([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})"/m,
-      );
-      if (m) return classify(parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16));
-    }
-  } catch {
-    // ignore
+  const omarchyBg = readOmarchyBackground();
+  if (omarchyBg) {
+    const rgb = parseHex(omarchyBg);
+    if (rgb) return classify(rgb[0], rgb[1], rgb[2]);
   }
 
   // ── Alacritty ────────────────────────────────────────────────────
