@@ -1,4 +1,5 @@
 import { type BlockRole, type BlockTheme, type TuiTheme, BUILT_IN_THEMES } from "./themes.js";
+import { formatError } from "./errors";
 import {
   DEFAULT_COST_DISPLAY_CONFIG,
   formatCost,
@@ -2558,7 +2559,7 @@ export class Tui {
       this.addBlock({
         role: "error",
         title: "Error",
-        content: error instanceof Error ? error.stack ?? error.message : String(error),
+        content: formatError(error),
       });
       this.setRunning(false, "idle");
     });

@@ -108,6 +108,7 @@ import {
 import { runHeadless } from "./headless";
 import { resolveTheme, withCanvasBackground } from "./themes";
 import { setTuiTheme } from "./tui";
+import { formatError } from "./errors";
 import { setShikiTheme } from "./syntax";
 import { detectTerminalBackground, readOmarchyBackground } from "./terminal-utils";
 import { loadPreferences, savePreferences } from "./preferences";
@@ -601,20 +602,6 @@ function sendDoneNotification(session: Session): void {
   const lastText = getLastAssistantText(session);
   const body = getFirstParagraph(lastText ?? "") ?? "Done";
   sendDesktopNotification(title, body);
-}
-
-function formatError(error: unknown) {
-  if (!(error instanceof Error)) return String(error);
-  let text = error.stack ?? error.message;
-  // Surface wrapped root causes — e.g. the OpenAI SDK wraps stream errors in
-  // a fresh OpenAIError whose stack points at its own wrapping code, hiding
-  // the original error (and its stack) on the `cause` property.
-  let cause: unknown = error.cause;
-  while (cause instanceof Error) {
-    text += `\nCaused by: ${cause.stack ?? cause.message}`;
-    cause = cause.cause;
-  }
-  return text;
 }
 
 function formatErrorMessage(error: unknown) {
@@ -2421,13 +2408,21 @@ async function main() {
 }
 
 process.on("uncaughtException", (error: unknown) => {
-  tui.addBlock({ role: "error", title: "Uncaught exception", content: formatError(error) });
+  tui.addBlock({
+    role: "error",
+    title: "Uncaught exception",
+    content: formatError(error, { includeOrigin: true }),
+  });
   promptRunning = false;
   tui.setRunning(false, "idle");
 });
 
 process.on("unhandledRejection", (reason: unknown) => {
-  tui.addBlock({ role: "error", title: "Unhandled rejection", content: formatError(reason) });
+  tui.addBlock({
+    role: "error",
+    title: "Unhandled rejection",
+    content: formatError(reason, { includeOrigin: true }),
+  });
   promptRunning = false;
   tui.setRunning(false, "idle");
 });
