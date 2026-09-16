@@ -2959,9 +2959,17 @@ export class Tui {
     const costText = this.cost > 0 ? `  ${formatCost(this.cost, this.costDisplayConfig)}  ` : "";
     const contextText = this.contextInfo ? `  ${formatContextInfo(this.contextInfo)}  ` : "";
     const modelText = this.model ? `  ${this.model}  ` : "";
+    // Only the model name keeps the model color; the provider prefix and
+    // variant suffix render muted, matching the cwd/branch styling.
+    const modelSlash = this.model.indexOf("/");
+    const modelColon = this.model.lastIndexOf(":");
+    const hasModel = this.model.length > 0;
+    const modelPrefix = hasModel ? (modelSlash > 0 ? `  ${this.model.slice(0, modelSlash + 1)}` : "  ") : "";
+    const modelSuffix = hasModel ? (modelColon > modelSlash ? `${this.model.slice(modelColon)}  ` : "  ") : "";
+    const modelName = this.model.slice(modelSlash + 1, modelColon > modelSlash ? modelColon : this.model.length);
     const home = homedir();
     let displayCwd = this.cwd && this.cwd.startsWith(home) ? "~" + this.cwd.slice(home.length) : this.cwd;
-    if (displayCwd && this.gitBranch) displayCwd = `${displayCwd}:${this.gitBranch}`;
+    if (displayCwd && this.gitBranch && this.gitBranch !== "main" && this.gitBranch !== "master") displayCwd = `${displayCwd}:${this.gitBranch}`;
     const cwdText = displayCwd ? `  ${displayCwd}  ` : "";
     const horizontalPadding = Math.min(INPUT_HORIZONTAL_PADDING, Math.floor((columns - 1) / 2));
     const rightWidth = displayWidth(cwdText) + displayWidth(costText) + displayWidth(contextText) + displayWidth(modelText);
@@ -2977,7 +2985,9 @@ export class Tui {
       `${bg(currentTheme.status.bg)}${fg(contextFgColor)}${cwdText}` +
       `${bg(currentTheme.status.bg)}${fg(currentTheme.status.costFg)}${costText}` +
       `${bg(currentTheme.status.bg)}${fg(contextFgColor)}${contextText}` +
-      `${bg(currentTheme.status.bg)}${fg(currentTheme.status.modelFg)}${modelText}${RESET}`
+      `${bg(currentTheme.status.bg)}${fg(contextFgColor)}${modelPrefix}` +
+      `${bg(currentTheme.status.bg)}${fg(currentTheme.status.modelFg)}${modelName}` +
+      `${bg(currentTheme.status.bg)}${fg(contextFgColor)}${modelSuffix}${RESET}`
     );
   }
 
