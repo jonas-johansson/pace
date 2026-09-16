@@ -2974,7 +2974,7 @@ export class Tui {
     const contextFgColor = this.contextInfo && this.contextInfo.usedTokens / this.contextInfo.contextWindow >= 0.8 ? currentTheme.status.contextWarnFg : currentTheme.status.contextFg;
     return (
       `${bg(currentTheme.status.bg)}${fg(fgColor)}${leftPadded}${" ".repeat(gapWidth)}` +
-      `${bg(currentTheme.status.bg)}${fg(currentTheme.status.fg)}${cwdText}` +
+      `${bg(currentTheme.status.bg)}${fg(contextFgColor)}${cwdText}` +
       `${bg(currentTheme.status.bg)}${fg(currentTheme.status.costFg)}${costText}` +
       `${bg(currentTheme.status.bg)}${fg(contextFgColor)}${contextText}` +
       `${bg(currentTheme.status.bg)}${fg(currentTheme.status.modelFg)}${modelText}${RESET}`
