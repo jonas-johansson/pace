@@ -20,6 +20,7 @@ let openAIProvider: Provider | undefined;
 let fireworksProvider: Provider | undefined;
 let friendliProvider: Provider | undefined;
 let lmStudioProvider: Provider | undefined;
+let compactifAiProvider: Provider | undefined;
 
 async function getOpenCodeGoProvider(): Promise<Provider> {
   if (!openCodeGoProvider) {
@@ -143,6 +144,13 @@ export async function resolveProvider(config: ModelConfig): Promise<Provider> {
         lmStudioProvider = new LmStudioProvider();
       }
       return lmStudioProvider;
+    }
+    case "compactifai": {
+      if (!compactifAiProvider) {
+        const { CompactifAiProvider } = await import("./providers/compactifai");
+        compactifAiProvider = new CompactifAiProvider();
+      }
+      return compactifAiProvider;
     }
   }
 }

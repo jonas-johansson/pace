@@ -2,7 +2,7 @@
  * Model metadata and provider-qualified model id helpers.
  */
 
-export type ProviderId = "anthropic" | "opencode" | "openai" | "fireworks" | "friendli" | "lmstudio";
+export type ProviderId = "anthropic" | "opencode" | "openai" | "fireworks" | "friendli" | "lmstudio" | "compactifai";
 
 export type PricingConfig = {
   inputPerMTok: number;
@@ -256,6 +256,19 @@ const ANTHROPIC_BUDGET_THINKING_VARIANTS: Record<string, ModelVariant> = {
     id: "thinking-max",
     label: "thinking budget: max",
     providerOptions: { thinking: { type: "enabled", budget_tokens: 15_999, display: "summarized" } },
+  },
+};
+
+const QUASAR_REASONING_VARIANTS: Record<string, ModelVariant> = {
+  high: {
+    id: "high",
+    label: "reasoning effort: high",
+    providerOptions: { reasoning_effort: "high" },
+  },
+  max: {
+    id: "max",
+    label: "reasoning effort: max",
+    providerOptions: { reasoning_effort: "max" },
   },
 };
 
@@ -638,6 +651,23 @@ export const MODEL_METADATA: Record<string, ModelMetadata> = {
     supportsImages: true,
     pricing: ZERO_PRICING,
   },
+  // Multiverse Computing's flagship reasoning model. Reasoning is always on;
+  // effort is selected via the `reasoning_effort` parameter (high | max).
+  // Context window per Multiverse's launch materials (1M tokens); the API
+  // docs do not publish an exact max output limit, so a conservative value
+  // is used for the `max_tokens` request field.
+  "compactifai/quasar-438b": {
+    contextWindow: 1_000_000,
+    maxOutputTokens: 32_000,
+    supportsImages: false,
+    variants: QUASAR_REASONING_VARIANTS,
+    pricing: {
+      inputPerMTok: 0.60,
+      cacheWritePerMTok: 0,
+      cacheReadPerMTok: 0,
+      outputPerMTok: 1.80,
+    },
+  },
   // "lmstudio/google/gemma-4-26b-a4b": {
   //   contextWindow: 32_768,
   //   maxOutputTokens: 8_192,
@@ -659,6 +689,7 @@ const PROVIDER_IDS = new Set<ProviderId>([
   "fireworks",
   "friendli",
   "lmstudio",
+  "compactifai",
 ]);
 
 export function parseModelId(id: string): { id: string; provider: ProviderId; providerModel: string } | undefined {
@@ -710,6 +741,12 @@ const DEFAULT_MODEL_METADATA_BY_PROVIDER: Record<ProviderId, ModelMetadata> = {
     contextWindow: 32_768,
     maxOutputTokens: 8_192,
     supportsImages: true,
+    pricing: ZERO_PRICING,
+  },
+  compactifai: {
+    contextWindow: 1_000_000,
+    maxOutputTokens: 32_000,
+    supportsImages: false,
     pricing: ZERO_PRICING,
   },
 };

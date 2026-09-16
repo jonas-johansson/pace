@@ -1869,7 +1869,7 @@ async function prompt(
         ...(modelConfig.providerOptions ?? {}),
         ...(modelVariant?.providerOptions ?? {}),
         ...((modelConfig.provider === "opencode" || modelConfig.provider === "fireworks"
-          || modelConfig.provider === "friendli")
+          || modelConfig.provider === "friendli" || modelConfig.provider === "compactifai")
           && { supportsImages: modelConfig.supportsImages }),
       },
       signal,

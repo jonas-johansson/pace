@@ -581,7 +581,7 @@ export async function runHeadless(argv: string[], io: HeadlessIo = {}): Promise<
           ...(modelConfig.providerOptions ?? {}),
           ...(modelVariant?.providerOptions ?? {}),
           ...((modelConfig.provider === "opencode" || modelConfig.provider === "fireworks"
-            || modelConfig.provider === "friendli")
+            || modelConfig.provider === "friendli" || modelConfig.provider === "compactifai")
             && { supportsImages: modelConfig.supportsImages }),
         },
         signal: abortController.signal,

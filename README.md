@@ -27,6 +27,7 @@ export OPENAI_API_KEY=sk-...           # openai/* models
 export OPENCODE_ZEN_API_KEY=...        # opencode/* models via OpenCode Zen
 export FIREWORKS_API_KEY=...           # fireworks/* models
 export FRIENDLI_API_KEY=...            # friendli/* models
+export COMPACTIFAI_API_KEY=...         # compactifai/* models (Multiverse Computing, e.g. quasar-438b)
 ```
 
 ## Features
