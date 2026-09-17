@@ -2957,7 +2957,7 @@ export class Tui {
     const scrollText = this.scrollOffset > 0 ? `${statusText || imageText || steerText ? " | " : ""}scroll ${this.scrollOffset}/${maxScroll} | End latest` : "";
     const leftText = `${spinner}${statusText}${imageText}${steerText}${scrollText}`;
     const costText = this.cost > 0 ? `  ${formatCost(this.cost, this.costDisplayConfig)}  ` : "";
-    const contextText = this.contextInfo ? `  ${formatContextInfo(this.contextInfo)}  ` : "";
+    const contextText = this.contextInfo && this.contextInfo.usedTokens > 0 ? `  ${formatContextInfo(this.contextInfo)}  ` : "";
     const modelText = this.model ? `  ${this.model}  ` : "";
     // Only the model name keeps the model color; the provider prefix and
     // variant suffix render muted, matching the cwd/branch styling.
