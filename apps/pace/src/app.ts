@@ -242,11 +242,10 @@ function cancelPrompt() {
   currentAbortController.abort();
 }
 
-function setDisplayMode(mode: DisplayMode, showStatus = true, persist = true) {
+function setDisplayMode(mode: DisplayMode, persist = true) {
   displayMode = mode;
   tui.setDisplayMode(mode);
   if (persist) schedulePreferenceSave();
-  if (showStatus) tui.setStatus(`View: ${mode}`);
 }
 
 function toggleDisplayMode() {
@@ -970,7 +969,7 @@ function applyStoredPreferences(preferences: {
   displayMode?: DisplayMode;
 }) {
   if (preferences.displayMode) {
-    setDisplayMode(preferences.displayMode, false, false);
+    setDisplayMode(preferences.displayMode, false);
   }
 
   if (preferences.mcpEnabled) {
@@ -1151,7 +1150,7 @@ async function handleCommand(command: string): Promise<boolean> {
     case "/view": {
       const requestedMode = args[0];
       if (!requestedMode) {
-        tui.setStatus(`View: ${displayMode} — usage: /view <focused|detailed>`);
+        tui.setStatus("usage: /view <focused|detailed>");
         return true;
       }
       if (requestedMode !== "focused" && requestedMode !== "detailed") {
