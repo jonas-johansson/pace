@@ -2,7 +2,7 @@ import { readFile, stat } from "fs/promises";
 import { existsSync } from "fs";
 import { homedir } from "os";
 import { join, resolve, extname } from "path";
-import { Tui } from "./tui";
+import { copyToClipboard, Tui } from "./tui";
 import { formatSessionCost, formatTokenCount, type DisplayMode } from "./view-model";
 import { getGitBranch } from "./git.js";
 import {
@@ -277,6 +277,7 @@ const tui = new Tui({
   },
   onPasteImage: handlePasteImage,
   slashCommands: () => [
+    { label: "/copy", detail: "Copy the last agent message to the clipboard", kind: "command", insertText: "/copy" },
     { label: "/new", detail: "Start a new conversation", kind: "command", insertText: "/new " },
     { label: "/exit", detail: "Exit the application", kind: "command", insertText: "/exit " },
     { label: "/quit", detail: "Exit the application", kind: "command", insertText: "/quit " },
@@ -1264,6 +1265,29 @@ async function handleCommand(command: string): Promise<boolean> {
         return true;
       }
       tui.openTreeOverlay(items, modelVisibleEntryCount());
+      return true;
+    }
+    case "/copy": {
+      const path = getActivePath(activeSession);
+      let lastAssistantText = "";
+      for (let i = path.length - 1; i >= 0; i -= 1) {
+        const entry = path[i];
+        if (entry.type === "assistant") {
+          const texts = entry.content
+            .filter((block): block is TextBlock => block.type === "text")
+            .map((block) => block.text);
+          lastAssistantText = texts.join("").trim();
+          break;
+        }
+      }
+
+      if (!lastAssistantText) {
+        tui.setStatus("No agent message to copy");
+        return true;
+      }
+
+      copyToClipboard(lastAssistantText);
+      tui.setStatus(`Copied ${lastAssistantText.length} chars to clipboard`);
       return true;
     }
     case "/undo": {

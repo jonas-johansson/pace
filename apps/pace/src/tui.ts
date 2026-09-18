@@ -3385,7 +3385,7 @@ function highlightInputLine(line: string, inputFg: number): string {
   return result;
 }
 
-function copyToClipboard(text: string) {
+export function copyToClipboard(text: string) {
   process.stdout.write(`\x1b]52;c;${Buffer.from(text, "utf8").toString("base64")}\x07`);
 }
 
