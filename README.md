@@ -28,7 +28,10 @@ export OPENCODE_ZEN_API_KEY=...        # opencode/* models via OpenCode Zen
 export FIREWORKS_API_KEY=...           # fireworks/* models
 export FRIENDLI_API_KEY=...            # friendli/* models
 export COMPACTIFAI_API_KEY=...         # compactifai/* models (Multiverse Computing, e.g. quasar-438b)
+export EXA_API_KEY=...                 # optional; higher web search limits. Backend-only, sent as an x-api-key header
 ```
+
+Without `EXA_API_KEY`, web search uses Exa's rate-limited anonymous MCP endpoint and retries with backoff before failing the tool call.
 
 ## Features
 

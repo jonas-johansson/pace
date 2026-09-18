@@ -42,12 +42,22 @@ export async function fetchWithRetry(
       );
     }
 
-    // Honor Retry-After if present (seconds); otherwise exponential backoff + jitter.
-    const retryAfter = response.headers.get("retry-after");
-    let waitMs = retryAfter
-      ? parseInt(retryAfter, 10) * 1000
-      : Math.min(MAX_DELAY_MS, BASE_DELAY_MS * Math.pow(2, attempt));
-    waitMs += Math.random() * 1000; // jitter
+    // Honor Retry-After if present (seconds or HTTP-date); otherwise
+    // exponential backoff + jitter. An unparseable header falls back to
+    // backoff instead of NaN-delaying into a hot retry loop.
+    const retryAfterMs = retryAfterDelay(response.headers.get("retry-after"));
+    const backoff =
+      Math.min(MAX_DELAY_MS, BASE_DELAY_MS * Math.pow(2, attempt)) +
+      Math.random() * 1000; // jitter
+    // Do not retry earlier than requested or leave the process asleep for
+    // hours. Long server cooldowns are surfaced to the caller instead.
+    if (retryAfterMs !== null && retryAfterMs > 120_000) {
+      throw new Error(
+        `Rate limit (429): retry after ${Math.ceil(retryAfterMs / 1000)} seconds. ` +
+        "The server asked for a long cooldown — try again later.",
+      );
+    }
+    const waitMs = Math.max(backoff, retryAfterMs ?? 0);
 
     emitEvent("rate-limit-retry", {
       url,
@@ -58,4 +68,15 @@ export async function fetchWithRetry(
     await delay(waitMs, signal);
     attempt++;
   }
+}
+
+function retryAfterDelay(value: string | null): number | null {
+  if (!value?.trim()) return null;
+  const trimmed = value.trim();
+  if (/^\d+(?:\.\d+)?$/.test(trimmed)) {
+    const ms = Number(trimmed) * 1000;
+    return Number.isFinite(ms) ? ms : null;
+  }
+  const date = Date.parse(trimmed);
+  return Number.isFinite(date) ? Math.max(0, date - Date.now()) : null;
 }
