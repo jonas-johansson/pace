@@ -2082,7 +2082,6 @@ async function prompt(
             finishReasoningBlock();
             ensureToolBlock(toolBlocks, event.id, event.name);
             runningToolUseIds.add(event.id);
-            tui.setStatus(`Preparing tool: ${event.name}`);
             break;
           }
 
