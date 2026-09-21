@@ -22,7 +22,7 @@ test("detailed view preserves every block", () => {
   assert.strictEqual(projectBlocksForDisplay(blocks, { mode: "detailed", running: true }), blocks);
 });
 
-test("focused view keeps every user message and each turn's final agent message", () => {
+test("focused view keeps every user message and each finished turn's final agent message", () => {
   const blocks = [
     block(1, "user", "First"),
     block(2, "assistant", "First answer"),
@@ -36,15 +36,42 @@ test("focused view keeps every user message and each turn's final agent message"
   assert.deepEqual(projected.map(({ id }) => id), [1, 2, 3, 6]);
 });
 
-test("intermediate assistant narration is hidden once the final answer arrives", () => {
+test("a running turn keeps its last three agent messages", () => {
   const blocks = [
     block(1, "user", "Look"),
-    block(2, "assistant", "I will inspect"),
+    block(2, "assistant", "First update"),
     block(3, "tool", "output"),
-    block(4, "assistant", "Final answer"),
+    block(4, "assistant", "Second update"),
+    block(5, "tool", "output"),
+    block(6, "assistant", "Third update"),
+    block(7, "tool", "output"),
+    block(8, "assistant", "Fourth update"),
+  ];
+  const projected = projectBlocksForDisplay(blocks, { mode: "focused", running: true });
+  assert.deepEqual(projected.map(({ id }) => id), [1, 4, 6, 8]);
+});
+
+test("a running turn with fewer than three agent messages keeps them all", () => {
+  const blocks = [
+    block(1, "user", "Look"),
+    block(2, "assistant", "Only update"),
+    block(3, "tool", "output"),
+  ];
+  const projected = projectBlocksForDisplay(blocks, { mode: "focused", running: true });
+  assert.deepEqual(projected.map(({ id }) => id), [1, 2]);
+});
+
+test("a finished turn collapses to its final agent message", () => {
+  const blocks = [
+    block(1, "user", "Look"),
+    block(2, "assistant", "First update"),
+    block(3, "tool", "output"),
+    block(4, "assistant", "Second update"),
+    block(5, "tool", "output"),
+    block(6, "assistant", "Final answer"),
   ];
   const projected = projectBlocksForDisplay(blocks, { mode: "focused", running: false });
-  assert.deepEqual(projected.map(({ id }) => id), [1, 4]);
+  assert.deepEqual(projected.map(({ id }) => id), [1, 6]);
 });
 
 test("focused view skips whitespace-only assistant blocks", () => {
@@ -152,16 +179,15 @@ test("blocks before the first user message stay visible", () => {
   assert.deepEqual(projected.map(({ id }) => id), [1, 3, 4]);
 });
 
-test("error blocks newer than the turn's final answer stay visible", () => {
+test("error blocks stay visible between agent messages", () => {
   const blocks = [
     block(1, "user", "Look"),
-    block(2, "assistant", "Answer"),
+    block(2, "assistant", "Partial answer"),
     block(3, "error", "Compaction failed"),
-    block(4, "user", "Next"),
-    block(5, "assistant", "Next answer"),
+    block(4, "assistant", "Final answer"),
   ];
   const projected = projectBlocksForDisplay(blocks, { mode: "focused", running: false });
-  assert.deepEqual(projected.map(({ id }) => id), [1, 2, 3, 4, 5]);
+  assert.deepEqual(projected.map(({ id }) => id), [1, 3, 4]);
 });
 
 test("a turn with an error and no final answer shows the error", () => {

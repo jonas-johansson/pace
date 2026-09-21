@@ -129,7 +129,7 @@ Model catalog environment variables:
 | `/mcp` | List connected MCP servers and tools |
 | `/mcps` | Enable or disable MCP servers (Ctrl+E) |
 
-Pace starts in focused view, which keeps every user message and each turn's final agent message — reasoning, tool output, and intermediate narration are hidden — plus a `Thinking...` line while Pace is working. The complete transcript is still recorded; press Ctrl+G or use `/view detailed` to reveal it at any time, including while Pace is working.
+Pace starts in focused view, which keeps every user message plus the turn's agent messages — while Pace is working, the last three agent messages stay visible so recent progress is in view, and once a turn finishes it collapses to its final message. Reasoning, tool output, and meta noise are always hidden, and a `Thinking...` line shows what Pace is doing while it works. The complete transcript is still recorded; press Ctrl+G or use `/view detailed` to reveal it at any time, including while Pace is working.
 
 ## File and image references
 

@@ -76,13 +76,16 @@ function activityForTurn(blocks: RenderBlock[], turnStart: number, turnEnd: numb
  * Project the complete render transcript into the selected presentation mode.
  *
  * Detailed mode returns the blocks unchanged. Focused mode collapses each
- * user turn to its user message plus the turn's latest agent message (plus
- * any error blocks after it), and — while the agent is running — appends a
- * synthetic activity line to the running turn showing what the agent is
- * working on (the latest reasoning heading, or a "Thinking..." placeholder).
- * The line is suppressed while assistant text is the latest activity, since
- * the focused view already shows that text block. The input is never
- * mutated, so switching modes mid-turn is lossless.
+ * user turn to its user message plus the turn's agent messages (plus any
+ * error blocks): while the agent is working, the last three agent messages
+ * stay visible so recent progress is in view; once the turn finishes, only
+ * the final agent message remains. Reasoning, tool, and meta blocks are
+ * always hidden. While the agent is running, a synthetic activity line is
+ * appended to the running turn showing what the agent is working on (the
+ * latest reasoning heading, or a "Thinking..." placeholder). The line is
+ * suppressed while assistant text is the latest activity, since the focused
+ * view already shows that block. The input is never mutated, so switching
+ * modes mid-turn is lossless.
  */
 export function projectBlocksForDisplay(
   blocks: RenderBlock[],
@@ -117,21 +120,25 @@ export function projectBlocksForDisplay(
 
     projected.push(blocks[turnStart]);
 
-    // Scan backward within the turn: keep error blocks and the first
-    // contentful assistant block — the turn's final answer. Reasoning,
-    // tool, meta, and intermediate assistant narration are hidden.
-    const turnBlocks: RenderBlock[] = [];
-    let seenAssistant = false;
-    for (let i = turnEnd - 1; i > turnStart; i--) {
+    // Keep error blocks and the turn's agent messages (assistant blocks
+    // with visible content), in order. While the agent works, the last
+    // three agent messages stay visible; a finished turn collapses to its
+    // final message. Reasoning, tool, and meta blocks are hidden.
+    let agentMessageCount = 0;
+    for (let i = turnStart + 1; i < turnEnd; i++) {
+      if (hasVisibleAssistantContent(blocks[i])) agentMessageCount++;
+    }
+    const keepCount = isRunningTurn ? 3 : 1;
+    const firstKept = agentMessageCount - keepCount;
+    let agentMessageIndex = 0;
+    for (let i = turnStart + 1; i < turnEnd; i++) {
       const block = blocks[i];
       if (block.role === "error") {
-        turnBlocks.unshift(block);
-      } else if (hasVisibleAssistantContent(block) && !seenAssistant) {
-        turnBlocks.unshift(block);
-        seenAssistant = true;
+        projected.push(block);
+      } else if (hasVisibleAssistantContent(block) && agentMessageIndex++ >= firstKept) {
+        projected.push(block);
       }
     }
-    projected.push(...turnBlocks);
 
     if (isRunningTurn) {
       appendedActivity = true;
