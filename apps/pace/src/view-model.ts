@@ -13,7 +13,7 @@ export type DisplayMode = "focused" | "detailed";
 export const FOCUSED_ACTIVITY_BLOCK_ID = -1;
 export const FOCUSED_ACTIVITY_BLOCK_KEY = "focused-activity";
 /** Placeholder shown in the focused view while the agent works. */
-export const FOCUSED_ACTIVITY_PLACEHOLDER = "Thinking...";
+export const FOCUSED_ACTIVITY_PLACEHOLDER = "Working...";
 
 export type RenderBlock = {
   id: number;
@@ -82,7 +82,7 @@ function activityForTurn(blocks: RenderBlock[], turnStart: number, turnEnd: numb
  * the final agent message remains. Reasoning, tool, and meta blocks are
  * always hidden. While the agent is running, a synthetic activity line is
  * appended to the running turn showing what the agent is working on (the
- * latest reasoning heading, or a "Thinking..." placeholder). The line is
+ * latest reasoning heading, or a "Working..." placeholder). The line is
  * suppressed while assistant text is the latest activity, since the focused
  * view already shows that block. The input is never mutated, so switching
  * modes mid-turn is lossless.

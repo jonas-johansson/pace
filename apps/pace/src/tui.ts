@@ -3810,7 +3810,7 @@ function renderMetaBlock(block: RenderBlock, columns: number, sanitizedContent: 
 
 /**
  * Render the focused activity block: a muted spinner plus a one-line status
- * (the latest reasoning heading, or "Thinking..."), shown in focused mode
+ * (the latest reasoning heading, or "Working..."), shown in focused mode
  * while the agent works.
  */
 function renderFocusedActivityBlock(block: RenderBlock, columns: number, spinnerFrame: string) {
