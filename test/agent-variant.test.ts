@@ -37,12 +37,12 @@ test("applyModelVariant ignores unknown variant ids", () => {
 
 // ── Agent discovery ──────────────────────────────────────────────────────────
 
-test("built-in explore agent uses the medium reasoning variant", async () => {
+test("built-in explore agent uses the low reasoning variant", async () => {
   const agents = await discoverAgents();
   const explore = agents.find((a) => a.name === "explore");
   assert.ok(explore, "built-in explore agent should be discovered");
-  assert.equal(explore.model, "opencode/gpt-5.6-luna");
-  assert.equal(explore.variant, "medium");
+  assert.equal(explore.model, "fireworks/glm-5.3-flash");
+  assert.equal(explore.variant, "low");
 });
 
 test("agent frontmatter can override the variant", async () => {
