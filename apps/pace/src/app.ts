@@ -1893,7 +1893,7 @@ async function prompt(
         ...(modelVariant?.providerOptions ?? {}),
         ...((modelConfig.provider === "opencode" || modelConfig.provider === "fireworks"
           || modelConfig.provider === "friendli" || modelConfig.provider === "compactifai"
-          || modelConfig.provider === "openrouter")
+          || modelConfig.provider === "openrouter" || modelConfig.provider === "xiaomi")
           && { supportsImages: modelConfig.supportsImages }),
       },
       signal,

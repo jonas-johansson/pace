@@ -29,6 +29,7 @@ const REMOTE_PROVIDER_ID_MAP: Record<string, ProviderId> = {
   "fireworks-ai": "fireworks",
   lmstudio: "lmstudio",
   openrouter: "openrouter",
+  xiaomi: "xiaomi",
 };
 
 const costSchema = z.object({

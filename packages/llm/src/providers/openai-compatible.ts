@@ -39,6 +39,12 @@ export type OpenAiCompatibleProviderOptions = {
   baseUrl: string;
   /** Translate a Pace model ID into the backend's wire model identifier. */
   mapModel?: (model: string) => string;
+  /**
+   * Request field used to cap generated tokens in Chat Completions bodies.
+   * Classic OpenAI-compatible backends take `max_tokens`; newer ones
+   * (e.g. Xiaomi MiMo) document only `max_completion_tokens`.
+   */
+  maxTokensField?: "max_tokens" | "max_completion_tokens";
   /** Static defaults merged under the per-request body. */
   defaultBody?: Record<string, unknown>;
   /** Retry transient failures (429s, connection resets) with backoff. */
@@ -602,7 +608,7 @@ export class OpenAiCompatibleProvider implements Provider {
           model,
           messages: toOaiMessages(params.system, messages, supportsImages, options.providerId),
           tools: toOaiTools(params.tools),
-          max_tokens: params.maxTokens,
+          [options.maxTokensField ?? "max_tokens"]: params.maxTokens,
           stream: true,
           // Include usage in the streamed response
           stream_options: { include_usage: true },

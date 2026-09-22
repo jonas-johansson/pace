@@ -2,7 +2,7 @@
  * Model metadata and provider-qualified model id helpers.
  */
 
-export type ProviderId = "anthropic" | "opencode" | "openai" | "fireworks" | "friendli" | "lmstudio" | "compactifai" | "openrouter";
+export type ProviderId = "anthropic" | "opencode" | "openai" | "fireworks" | "friendli" | "lmstudio" | "compactifai" | "openrouter" | "xiaomi";
 
 export type PricingConfig = {
   inputPerMTok: number;
@@ -109,6 +109,19 @@ const KIMI_VARIANTS: Record<string, ModelVariant> = {
     id: "think",
     label: "thinking: preserved",
     providerOptions: { thinking: { type: "enabled", keep: "all" } },
+  },
+  nothink: {
+    id: "nothink",
+    label: "thinking: disabled",
+    providerOptions: { thinking: { type: "disabled" } },
+  },
+};
+
+const MIMO_VARIANTS: Record<string, ModelVariant> = {
+  think: {
+    id: "think",
+    label: "thinking: enabled",
+    providerOptions: { thinking: { type: "enabled" } },
   },
   nothink: {
     id: "nothink",
@@ -668,6 +681,20 @@ export const MODEL_METADATA: Record<string, ModelMetadata> = {
       outputPerMTok: 1.80,
     },
   },
+  // Xiaomi MiMo (api.xiaomimimo.com). Thinking is enabled by default
+  // server-side; the variants toggle the `thinking` request parameter.
+  "xiaomi/mimo-v2.6-pro": {
+    contextWindow: 1_048_576,
+    maxOutputTokens: 131_072,
+    supportsImages: true,
+    variants: MIMO_VARIANTS,
+    pricing: {
+      inputPerMTok: 0.435,
+      cacheWritePerMTok: 0,
+      cacheReadPerMTok: 0.0036,
+      outputPerMTok: 0.87,
+    },
+  },
   // "lmstudio/google/gemma-4-26b-a4b": {
   //   contextWindow: 32_768,
   //   maxOutputTokens: 8_192,
@@ -691,6 +718,7 @@ const PROVIDER_IDS = new Set<ProviderId>([
   "lmstudio",
   "compactifai",
   "openrouter",
+  "xiaomi",
 ]);
 
 export function parseModelId(id: string): { id: string; provider: ProviderId; providerModel: string } | undefined {
@@ -753,6 +781,12 @@ const DEFAULT_MODEL_METADATA_BY_PROVIDER: Record<ProviderId, ModelMetadata> = {
   openrouter: {
     contextWindow: 128_000,
     maxOutputTokens: 16_000,
+    supportsImages: true,
+    pricing: ZERO_PRICING,
+  },
+  xiaomi: {
+    contextWindow: 1_048_576,
+    maxOutputTokens: 131_072,
     supportsImages: true,
     pricing: ZERO_PRICING,
   },

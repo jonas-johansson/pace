@@ -29,6 +29,7 @@ export FIREWORKS_API_KEY=...           # fireworks/* models
 export FRIENDLI_API_KEY=...            # friendli/* models
 export COMPACTIFAI_API_KEY=...         # compactifai/* models (Multiverse Computing, e.g. quasar-438b)
 export OPENROUTER_API_KEY=sk-or-...    # openrouter/* models (e.g. openrouter/xiaomi/mimo-v2.6-pro)
+export XIAOMI_API_KEY=sk-...           # xiaomi/* models (e.g. xiaomi/mimo-v2.6-pro); XIAOMI_BASE_URL overrides the endpoint (Token Plan)
 export EXA_API_KEY=...                 # optional; higher web search limits. Backend-only, sent as an x-api-key header
 ```
 
@@ -346,7 +347,7 @@ apps/pace       →  @pace/agent  →  @pace/llm
 | `src/providers/anthropic.ts` | Anthropic Messages API provider |
 | `src/providers/openai.ts` | OpenAI Responses API provider |
 | `src/providers/openai-compatible.ts` | Shared Chat Completions/responses implementation for OpenAI-compatible endpoints |
-| `src/providers/{opencode-zen,fireworks,friendli,lmstudio}.ts` | Thin configurations of the shared OpenAI-compatible provider |
+| `src/providers/{opencode-zen,fireworks,friendli,lmstudio,openrouter,compactifai,xiaomi}.ts` | Thin configurations of the shared OpenAI-compatible provider |
 | `src/registry.ts` | `resolveProvider()` model-to-provider routing with lazy instantiation |
 | `src/models.ts`, `src/model-catalog.ts` | Built-in model catalog plus remote refresh from models.dev |
 | `src/events.ts`, `src/fetch-retry.ts` | Typed event bus and fetch retry/backoff |

@@ -22,6 +22,7 @@ let friendliProvider: Provider | undefined;
 let lmStudioProvider: Provider | undefined;
 let compactifAiProvider: Provider | undefined;
 let openRouterProvider: Provider | undefined;
+let xiaomiProvider: Provider | undefined;
 
 async function getOpenCodeGoProvider(): Promise<Provider> {
   if (!openCodeGoProvider) {
@@ -159,6 +160,13 @@ export async function resolveProvider(config: ModelConfig): Promise<Provider> {
         openRouterProvider = new OpenRouterProvider();
       }
       return openRouterProvider;
+    }
+    case "xiaomi": {
+      if (!xiaomiProvider) {
+        const { XiaomiProvider } = await import("./providers/xiaomi");
+        xiaomiProvider = new XiaomiProvider();
+      }
+      return xiaomiProvider;
     }
   }
 }
