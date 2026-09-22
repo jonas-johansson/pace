@@ -2,7 +2,7 @@
  * Model metadata and provider-qualified model id helpers.
  */
 
-export type ProviderId = "anthropic" | "opencode" | "openai" | "fireworks" | "friendli" | "lmstudio" | "compactifai" | "openrouter" | "xiaomi";
+export type ProviderId = "anthropic" | "opencode" | "openai" | "fireworks" | "friendli" | "lmstudio" | "compactifai" | "openrouter" | "xiaomi" | "tensorx";
 
 export type PricingConfig = {
   inputPerMTok: number;
@@ -695,6 +695,21 @@ export const MODEL_METADATA: Record<string, ModelMetadata> = {
       outputPerMTok: 0.87,
     },
   },
+  // TensorX (api.tensorx.ai). Same GLM-5.3-Flash model as Friendli, served
+  // under the org-qualified id TensorX uses in its catalogue. Effort is
+  // selected via the `reasoning_effort` parameter.
+  "tensorx/z-ai/glm-5.3-flash": {
+    contextWindow: 1_000_000,
+    maxOutputTokens: 131_072,
+    supportsImages: true,
+    variants: GLM_5_3_FLASH_REASONING_VARIANTS,
+    pricing: {
+      inputPerMTok: 0.20,
+      cacheWritePerMTok: 0,
+      cacheReadPerMTok: 0.05,
+      outputPerMTok: 0.50,
+    },
+  },
   // "lmstudio/google/gemma-4-26b-a4b": {
   //   contextWindow: 32_768,
   //   maxOutputTokens: 8_192,
@@ -719,6 +734,7 @@ const PROVIDER_IDS = new Set<ProviderId>([
   "compactifai",
   "openrouter",
   "xiaomi",
+  "tensorx",
 ]);
 
 export function parseModelId(id: string): { id: string; provider: ProviderId; providerModel: string } | undefined {
@@ -786,6 +802,12 @@ const DEFAULT_MODEL_METADATA_BY_PROVIDER: Record<ProviderId, ModelMetadata> = {
   },
   xiaomi: {
     contextWindow: 1_048_576,
+    maxOutputTokens: 131_072,
+    supportsImages: true,
+    pricing: ZERO_PRICING,
+  },
+  tensorx: {
+    contextWindow: 1_000_000,
     maxOutputTokens: 131_072,
     supportsImages: true,
     pricing: ZERO_PRICING,

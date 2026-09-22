@@ -30,6 +30,7 @@ const REMOTE_PROVIDER_ID_MAP: Record<string, ProviderId> = {
   lmstudio: "lmstudio",
   openrouter: "openrouter",
   xiaomi: "xiaomi",
+  tensorx: "tensorx",
 };
 
 const costSchema = z.object({

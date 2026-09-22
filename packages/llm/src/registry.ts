@@ -23,6 +23,7 @@ let lmStudioProvider: Provider | undefined;
 let compactifAiProvider: Provider | undefined;
 let openRouterProvider: Provider | undefined;
 let xiaomiProvider: Provider | undefined;
+let tensorXProvider: Provider | undefined;
 
 async function getOpenCodeGoProvider(): Promise<Provider> {
   if (!openCodeGoProvider) {
@@ -167,6 +168,13 @@ export async function resolveProvider(config: ModelConfig): Promise<Provider> {
         xiaomiProvider = new XiaomiProvider();
       }
       return xiaomiProvider;
+    }
+    case "tensorx": {
+      if (!tensorXProvider) {
+        const { TensorXProvider } = await import("./providers/tensorx");
+        tensorXProvider = new TensorXProvider();
+      }
+      return tensorXProvider;
     }
   }
 }
