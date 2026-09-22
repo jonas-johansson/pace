@@ -90,6 +90,10 @@ type OaiStreamDelta = {
   role?: string;
   content?: string | null;
   reasoning_content?: string | null;
+  /** OpenRouter-style plain reasoning text. */
+  reasoning?: string | null;
+  /** OpenRouter-style structured reasoning chunks. */
+  reasoning_details?: Array<{ text?: string | null }> | null;
   tool_calls?: Array<{
     index: number;
     id?: string;
@@ -747,6 +751,19 @@ abstract class BaseOpenAiCompatibleStream implements ProviderStream {
   }
 }
 
+/**
+ * Concatenates the text of OpenRouter-style `reasoning_details` chunks
+ * (type "reasoning.text"). Chunks without text (e.g. redacted or signature
+ * placeholders) are skipped.
+ */
+function reasoningDetailsText(details: Array<{ text?: string | null }> | null | undefined): string | undefined {
+  if (!details || details.length === 0) return undefined;
+  const text = details
+    .map((detail) => (typeof detail?.text === "string" ? detail.text : ""))
+    .join("");
+  return text === "" ? undefined : text;
+}
+
 class OpenAiCompatibleChatStream extends BaseOpenAiCompatibleStream {
   private pendingToolCalls = new Map<number, PendingToolCall>();
 
@@ -785,9 +802,14 @@ class OpenAiCompatibleChatStream extends BaseOpenAiCompatibleStream {
 
       // ── Reasoning content (thinking) ──
       // Some models emit thinking content in `reasoning_content` rather than
-      // `content`. Surface it with dedicated events so the UI can make clear
-      // that it is reasoning, not final answer text.
-      if (delta.reasoning_content != null && delta.reasoning_content !== "") {
+      // `content`. OpenRouter uses a plain `reasoning` string or a structured
+      // `reasoning_details` array instead. Surface all of these with
+      // dedicated events so the UI can make clear that it is reasoning, not
+      // final answer text.
+      const reasoningText = delta.reasoning_content
+        ?? (typeof delta.reasoning === "string" ? delta.reasoning : undefined)
+        ?? reasoningDetailsText(delta.reasoning_details);
+      if (reasoningText != null && reasoningText !== "") {
         if (openBlock === "text") {
           yield { type: "block_stop" };
           openBlock = undefined;
@@ -795,11 +817,11 @@ class OpenAiCompatibleChatStream extends BaseOpenAiCompatibleStream {
 
         if (openBlock !== "reasoning") {
           openBlock = "reasoning";
-          yield { type: "reasoning_start", text: delta.reasoning_content };
+          yield { type: "reasoning_start", text: reasoningText };
         } else {
-          yield { type: "reasoning_delta", text: delta.reasoning_content };
+          yield { type: "reasoning_delta", text: reasoningText };
         }
-        this.fullReasoningContent += delta.reasoning_content;
+        this.fullReasoningContent += reasoningText;
       }
 
       // ── Text content ──

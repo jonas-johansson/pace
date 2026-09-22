@@ -2,7 +2,7 @@
  * Model metadata and provider-qualified model id helpers.
  */
 
-export type ProviderId = "anthropic" | "opencode" | "openai" | "fireworks" | "friendli" | "lmstudio" | "compactifai";
+export type ProviderId = "anthropic" | "opencode" | "openai" | "fireworks" | "friendli" | "lmstudio" | "compactifai" | "openrouter";
 
 export type PricingConfig = {
   inputPerMTok: number;
@@ -690,6 +690,7 @@ const PROVIDER_IDS = new Set<ProviderId>([
   "friendli",
   "lmstudio",
   "compactifai",
+  "openrouter",
 ]);
 
 export function parseModelId(id: string): { id: string; provider: ProviderId; providerModel: string } | undefined {
@@ -747,6 +748,12 @@ const DEFAULT_MODEL_METADATA_BY_PROVIDER: Record<ProviderId, ModelMetadata> = {
     contextWindow: 1_000_000,
     maxOutputTokens: 32_000,
     supportsImages: false,
+    pricing: ZERO_PRICING,
+  },
+  openrouter: {
+    contextWindow: 128_000,
+    maxOutputTokens: 16_000,
+    supportsImages: true,
     pricing: ZERO_PRICING,
   },
 };

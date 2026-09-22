@@ -154,8 +154,8 @@ let cycleModelSelections: ModelSelection[] = [
   { modelId: "opencode/claude-fable-5" },
   { modelId: "opencode/claude-opus-4-8" },
 ];
-const DEFAULT_SESSION_TITLE_MODEL = "opencode/deepseek-v4-flash";
-const DEFAULT_SESSION_TITLE_MODEL_VARIANT = "nothink";
+const DEFAULT_SESSION_TITLE_MODEL = "fireworks/glm-5.3-flash";
+const DEFAULT_SESSION_TITLE_MODEL_VARIANT = "low";
 let sessionTitleModelSelection: ModelSelection = {
   modelId: DEFAULT_SESSION_TITLE_MODEL,
   variantId: DEFAULT_SESSION_TITLE_MODEL_VARIANT,
@@ -1892,7 +1892,8 @@ async function prompt(
         ...(modelConfig.providerOptions ?? {}),
         ...(modelVariant?.providerOptions ?? {}),
         ...((modelConfig.provider === "opencode" || modelConfig.provider === "fireworks"
-          || modelConfig.provider === "friendli" || modelConfig.provider === "compactifai")
+          || modelConfig.provider === "friendli" || modelConfig.provider === "compactifai"
+          || modelConfig.provider === "openrouter")
           && { supportsImages: modelConfig.supportsImages }),
       },
       signal,

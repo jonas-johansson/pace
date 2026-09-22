@@ -28,6 +28,7 @@ const REMOTE_PROVIDER_ID_MAP: Record<string, ProviderId> = {
   openai: "openai",
   "fireworks-ai": "fireworks",
   lmstudio: "lmstudio",
+  openrouter: "openrouter",
 };
 
 const costSchema = z.object({
@@ -173,11 +174,12 @@ function toVariants(variants: Record<string, Record<string, unknown>> | undefine
  * because the Anthropic API requires `budget_tokens` (min 1024) for that
  * thinking type.
  */
-type ReasoningApiStyle = "anthropic" | "openai" | "generic";
+type ReasoningApiStyle = "anthropic" | "openai" | "openrouter" | "generic";
 
 function reasoningApiStyle(providerId: ProviderId, providerModelId: string): ReasoningApiStyle {
   if (providerId === "anthropic") return "anthropic";
   if (providerId === "openai") return "openai";
+  if (providerId === "openrouter") return "openrouter";
   if (providerId === "opencode") {
     if (providerModelId.startsWith("claude-")) return "anthropic";
     if (providerModelId.startsWith("gpt-")) return "openai";
@@ -208,6 +210,19 @@ function reasoningEffortVariant(style: ReasoningApiStyle, effort: string): Model
     };
   }
 
+  if (style === "openrouter") {
+    // OpenRouter normalizes `reasoning.effort` into whichever shape the
+    // upstream provider accepts, so a single OpenAI-style param works for
+    // every model it fronts.
+    return {
+      id: effort,
+      label: `reasoning effort: ${effort}`,
+      providerOptions: {
+        reasoning: { effort },
+      },
+    };
+  }
+
   return {
     id: effort,
     label: `reasoning effort: ${effort}`,
@@ -230,6 +245,21 @@ function reasoningToggleVariants(style: ReasoningApiStyle): Record<string, Model
         id: "adaptive",
         label: "adaptive thinking",
         providerOptions: { thinking: { type: "adaptive", display: "summarized" } },
+      },
+    };
+  }
+
+  if (style === "openrouter") {
+    return {
+      think: {
+        id: "think",
+        label: "thinking: enabled",
+        providerOptions: { reasoning: { enabled: true } },
+      },
+      nothink: {
+        id: "nothink",
+        label: "thinking: disabled",
+        providerOptions: { reasoning: { enabled: false } },
       },
     };
   }

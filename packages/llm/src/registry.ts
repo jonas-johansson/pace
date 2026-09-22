@@ -21,6 +21,7 @@ let fireworksProvider: Provider | undefined;
 let friendliProvider: Provider | undefined;
 let lmStudioProvider: Provider | undefined;
 let compactifAiProvider: Provider | undefined;
+let openRouterProvider: Provider | undefined;
 
 async function getOpenCodeGoProvider(): Promise<Provider> {
   if (!openCodeGoProvider) {
@@ -151,6 +152,13 @@ export async function resolveProvider(config: ModelConfig): Promise<Provider> {
         compactifAiProvider = new CompactifAiProvider();
       }
       return compactifAiProvider;
+    }
+    case "openrouter": {
+      if (!openRouterProvider) {
+        const { OpenRouterProvider } = await import("./providers/openrouter");
+        openRouterProvider = new OpenRouterProvider();
+      }
+      return openRouterProvider;
     }
   }
 }

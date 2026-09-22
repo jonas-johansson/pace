@@ -180,3 +180,68 @@ test("omits the session header when no session id is provided", async () => {
     restore();
   }
 });
+
+function captureFetchWithSse(sse: string) {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = (async () => {
+    return new Response(sse, { status: 200, headers: { "Content-Type": "text/event-stream" } });
+  }) as typeof fetch;
+  return () => {
+    globalThis.fetch = originalFetch;
+  };
+}
+
+async function collectEvents(provider: TestProvider): Promise<Record<string, unknown>[]> {
+  const stream = await provider.stream({
+    model: "m",
+    system: "s",
+    messages: [{ role: "user", content: [{ type: "text", text: "go" }] }],
+    tools,
+    maxTokens: 100,
+  });
+  const events: Record<string, unknown>[] = [];
+  for await (const event of stream as AsyncIterable<unknown>) {
+    events.push(event as Record<string, unknown>);
+  }
+  return events;
+}
+
+test("surfaces OpenRouter-style delta.reasoning as reasoning events", async () => {
+  const restore = captureFetchWithSse([
+    'data: {"choices":[{"index":0,"delta":{"reasoning":"thinking "}}]}',
+    'data: {"choices":[{"index":0,"delta":{"reasoning":"hard","content":"Hi"}}]}',
+    'data: {"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}',
+    "data: [DONE]",
+  ].join("\n\n") + "\n\n");
+  try {
+    const events = await collectEvents(makeProvider());
+    assert.deepEqual(events, [
+      { type: "reasoning_start", text: "thinking " },
+      { type: "reasoning_delta", text: "hard" },
+      { type: "block_stop" },
+      { type: "text_start", text: "Hi" },
+      { type: "block_stop" },
+    ]);
+  } finally {
+    restore();
+  }
+});
+
+test("surfaces OpenRouter-style reasoning_details as reasoning events", async () => {
+  const restore = captureFetchWithSse([
+    'data: {"choices":[{"index":0,"delta":{"reasoning_details":[{"type":"reasoning.text","text":"step "},{"type":"reasoning.text","text":"one"}]}}]}',
+    'data: {"choices":[{"index":0,"delta":{"content":"Done"},"finish_reason":"stop"}]}',
+    "data: [DONE]",
+  ].join("\n\n") + "\n\n");
+  try {
+    const events = await collectEvents(makeProvider());
+    assert.deepEqual(events, [
+      { type: "reasoning_start", text: "step one" },
+      { type: "block_stop" },
+      { type: "text_start", text: "Done" },
+      { type: "block_stop" },
+    ]);
+  } finally {
+    restore();
+  }
+});
