@@ -4090,7 +4090,8 @@ function renderSegment(segment: StyledSegment, theme: BlockTheme) {
   }
 }
 
-function renderMarkdownRows(content: string, width: number) {
+/** Exported for tests. */
+export function renderMarkdownRows(content: string, width: number) {
   const lines = content.split("\n");
   const rows: StyledSegment[][] = [];
   let inFencedCodeBlock = false;
@@ -4687,15 +4688,23 @@ function isInputWrapWhitespace(char: string | undefined) {
 }
 
 function wrapSegments(segments: StyledSegment[], width: number) {
-  const chars = segments.flatMap((segment) =>
-    Array.from(segment.text).map((char) => ({
-      text: char,
-      style: segment.style,
-      color: segment.color,
-      fontStyle: segment.fontStyle,
-      width: charWidth(char),
-    })),
-  );
+  const chars: (StyledSegment & { width: number })[] = [];
+  for (const segment of segments) {
+    const segmentChars = Array.from(segment.text);
+    for (let index = 0; index < segmentChars.length; index += 1) {
+      const char = segmentChars[index];
+      const codePoint = char.codePointAt(0) ?? 0;
+      const nextChar = segmentChars[index + 1];
+      // Keep regional indicator pairs together so a flag emoji is treated
+      // as a single two-cell unit that is never split across rows.
+      if (isRegionalIndicator(codePoint) && nextChar !== undefined && isRegionalIndicator(nextChar.codePointAt(0) ?? 0)) {
+        chars.push({ text: char + nextChar, style: segment.style, color: segment.color, fontStyle: segment.fontStyle, width: 2 });
+        index += 1;
+        continue;
+      }
+      chars.push({ text: char, style: segment.style, color: segment.color, fontStyle: segment.fontStyle, width: charWidth(char) });
+    }
+  }
 
   if (chars.length === 0) {
     return [[]];
@@ -4912,7 +4921,16 @@ function takeRight(text: string, width: number) {
   let used = 0;
 
   for (let index = chars.length - 1; index >= 0; index -= 1) {
-    const char = chars[index];
+    let char = chars[index];
+    // Regional indicator pairs form a single flag glyph; keep them together.
+    if (
+      isRegionalIndicator(char.codePointAt(0) ?? 0) &&
+      index > 0 &&
+      isRegionalIndicator(chars[index - 1].codePointAt(0) ?? 0)
+    ) {
+      char = chars[index - 1] + char;
+      index -= 1;
+    }
     const widthToAdd = charWidth(char);
     if (used + widthToAdd > width) {
       break;
@@ -4961,6 +4979,12 @@ function clipAnsi(text: string, width: number) {
       char = text[index];
     }
 
+    // Regional indicator pairs form a single flag glyph; keep them together.
+    const nextChar = text.substring(index + char.length, index + char.length + 2);
+    if (isRegionalIndicator(char.codePointAt(0) ?? 0) && isRegionalIndicator(nextChar.codePointAt(0) ?? 0)) {
+      char += nextChar;
+    }
+
     const widthToAdd = charWidth(char);
     if (used + widthToAdd > width) {
       break;
@@ -4976,7 +5000,20 @@ function clipAnsi(text: string, width: number) {
 
 function displayWidth(text: string) {
   let width = 0;
+  let inFlagPair = false;
   for (const char of text) {
+    const codePoint = char.codePointAt(0) ?? 0;
+    if (isRegionalIndicator(codePoint)) {
+      // A pair of regional indicators renders as a single two-cell flag
+      // glyph, so only count width for the first half of a pair.
+      inFlagPair = !inFlagPair;
+      if (!inFlagPair) {
+        continue;
+      }
+      width += 2;
+      continue;
+    }
+    inFlagPair = false;
     width += charWidth(char);
   }
   return width;
@@ -4999,6 +5036,10 @@ function charWidth(char: string) {
   }
 
   return isWide(codePoint) || isEmojiPresentation(codePoint) ? 2 : 1;
+}
+
+function isRegionalIndicator(codePoint: number) {
+  return codePoint >= 0x1f1e6 && codePoint <= 0x1f1ff;
 }
 
 function isCombining(codePoint: number) {
