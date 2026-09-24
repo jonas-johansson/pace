@@ -895,6 +895,14 @@ export class Tui {
         continue;
       }
 
+      // Ctrl+Z — insert /undo when the composer is empty.
+      if (char === "\x1a") {
+        if (!this.input) {
+          this.setInput("/undo");
+        }
+        continue;
+      }
+
       if (char >= " " && char !== "\u007f") {
         this.insertCharAtCursor(char);
       }

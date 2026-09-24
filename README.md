@@ -109,6 +109,7 @@ Model catalog environment variables:
 | **Ctrl+G** | Toggle focused and detailed transcript views |
 | **Escape** | Cancel the running prompt |
 | **Ctrl+V** | Paste image from clipboard |
+| **Ctrl+Z** | Insert `/undo` into an empty composer |
 | **Ctrl+C** | Clear input, or press twice to exit |
 | **Shift+Enter** | Insert a newline |
 | **`!command`** | Run a shell command directly (e.g. `!ls -la`) |
