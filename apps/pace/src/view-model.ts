@@ -76,11 +76,8 @@ function activityForTurn(blocks: RenderBlock[], turnStart: number, turnEnd: numb
  * Project the complete render transcript into the selected presentation mode.
  *
  * Detailed mode returns the blocks unchanged. Focused mode collapses each
- * user turn to its user message plus the turn's agent messages (plus any
- * error blocks): while the agent is working, the last three agent messages
- * stay visible so recent progress is in view; once the turn finishes, only
- * the final agent message remains. Reasoning, tool, and meta blocks are
- * always hidden. While the agent is running, a synthetic activity line is
+ * user turn to its user message plus all of the turn's agent messages (plus
+ * any error blocks). Reasoning, tool, and meta blocks are always hidden. While the agent is running, a synthetic activity line is
  * appended to the running turn showing what the agent is working on (the
  * latest reasoning heading, or a "Working..." placeholder). The line is
  * suppressed while assistant text is the latest activity, since the focused
@@ -120,22 +117,12 @@ export function projectBlocksForDisplay(
 
     projected.push(blocks[turnStart]);
 
-    // Keep error blocks and the turn's agent messages (assistant blocks
-    // with visible content), in order. While the agent works, the last
-    // three agent messages stay visible; a finished turn collapses to its
-    // final message. Reasoning, tool, and meta blocks are hidden.
-    let agentMessageCount = 0;
-    for (let i = turnStart + 1; i < turnEnd; i++) {
-      if (hasVisibleAssistantContent(blocks[i])) agentMessageCount++;
-    }
-    const keepCount = isRunningTurn ? 3 : 1;
-    const firstKept = agentMessageCount - keepCount;
-    let agentMessageIndex = 0;
+    // Keep error blocks and all of the turn's agent messages (assistant
+    // blocks with visible content), in order. Reasoning, tool, and meta
+    // blocks are hidden.
     for (let i = turnStart + 1; i < turnEnd; i++) {
       const block = blocks[i];
-      if (block.role === "error") {
-        projected.push(block);
-      } else if (hasVisibleAssistantContent(block) && agentMessageIndex++ >= firstKept) {
+      if (block.role === "error" || hasVisibleAssistantContent(block)) {
         projected.push(block);
       }
     }
