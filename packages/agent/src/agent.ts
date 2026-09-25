@@ -10,8 +10,8 @@
  *   Global:  ~/.agents/agents/<name>.md
  *            ~/.config/agents/agents/<name>.md
  *
- * A built-in `explore` agent is always available. Project and global agents
- * override it by name.
+ * Built-in agents are always available. Project and global agents override
+ * them by name.
  */
 
 import { readFile, readdir } from "fs/promises";
@@ -66,6 +66,55 @@ Report:
 - Key files with paths and line numbers.
 - Short explanations. Quote only the important parts, never entire files.`,
 };
+
+const BUILTIN_GENERAL_AGENT: AgentDefinition = {
+  name: "general",
+  description:
+    "General-purpose agent for implementing features and other substantial coding work. " +
+    "Delegate self-contained tasks here to keep the main conversation clean.",
+  tools: [],
+  model: "fireworks/glm-5.3-flash",
+  variant: "high",
+  source: "builtin",
+  body: `You are the general agent. You complete self-contained coding tasks: implementing features, fixing bugs, refactoring, and writing tests. You work in an isolated context window and do not see the main conversation.
+
+Approach:
+- Explore the relevant code first so you understand existing patterns and conventions.
+- Make focused changes that fully solve the task. Match the style of the surrounding code.
+- Verify your work: run the project's lint, build, or test commands when they exist.
+- If the task is ambiguous, make a reasonable choice and note it in your final report.
+
+Report:
+- What you changed and why, with file paths.
+- How you verified the change (commands run and their outcome).
+- Anything you intentionally left out or could not verify.`,
+};
+
+const BUILTIN_TWEAKER_AGENT: AgentDefinition = {
+  name: "tweaker",
+  description:
+    "Very fast agent for simple tweaks: small edits, renames, copy changes, config adjustments. " +
+    "Delegate quick, well-specified changes here. Not for multi-step or exploratory work.",
+  tools: ["read", "edit", "write", "bash"],
+  model: "fireworks/glm-5.3-flash",
+  variant: "low",
+  source: "builtin",
+  body: `You are the tweaker agent. You make small, well-specified changes as fast as possible: tweaks, renames, copy edits, config adjustments, one-line fixes. You work in an isolated context window and do not see the main conversation.
+
+Rules:
+- Do exactly what the task asks. No refactoring, no drive-by fixes, no extras.
+- Read only what you need to make the edit correctly.
+- Skip broad exploration and verification passes; the task is small by definition.
+
+Report:
+- One or two sentences: what you changed and where.`,
+};
+
+const BUILTIN_AGENTS: AgentDefinition[] = [
+  BUILTIN_EXPLORE_AGENT,
+  BUILTIN_GENERAL_AGENT,
+  BUILTIN_TWEAKER_AGENT,
+];
 
 // ── Name validation ──────────────────────────────────────────────────────────
 
@@ -163,7 +212,7 @@ export async function discoverAgents(): Promise<AgentDefinition[]> {
   const seen = new Set<string>();
   const result: AgentDefinition[] = [];
 
-  for (const list of [projectAgents, globalAgents1, globalAgents2, [BUILTIN_EXPLORE_AGENT]]) {
+  for (const list of [projectAgents, globalAgents1, globalAgents2, BUILTIN_AGENTS]) {
     for (const agent of list) {
       if (!seen.has(agent.name)) {
         seen.add(agent.name);

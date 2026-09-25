@@ -45,6 +45,22 @@ test("built-in explore agent uses the low reasoning variant", async () => {
   assert.equal(explore.variant, "low");
 });
 
+test("built-in general agent uses the high reasoning variant", async () => {
+  const agents = await discoverAgents();
+  const general = agents.find((a) => a.name === "general");
+  assert.ok(general, "built-in general agent should be discovered");
+  assert.equal(general.model, "fireworks/glm-5.3-flash");
+  assert.equal(general.variant, "high");
+});
+
+test("built-in tweaker agent uses the low reasoning variant", async () => {
+  const agents = await discoverAgents();
+  const tweaker = agents.find((a) => a.name === "tweaker");
+  assert.ok(tweaker, "built-in tweaker agent should be discovered");
+  assert.equal(tweaker.model, "fireworks/glm-5.3-flash");
+  assert.equal(tweaker.variant, "low");
+});
+
 test("agent frontmatter can override the variant", async () => {
   const dir = await mkdtemp(join(tmpdir(), "pace-agents-"));
   const cwd = process.cwd();

@@ -106,6 +106,7 @@ import {
   estimateBase64Size,
 } from "./image-cap";
 import { runHeadless } from "./headless";
+import { PACE_USAGE } from "./cli-help";
 import { resolveTheme, withCanvasBackground } from "./themes";
 import { setTuiTheme } from "./tui";
 import { formatError } from "./errors";
@@ -2302,6 +2303,12 @@ function parseCliArgs(): { resume: boolean; sessionId?: string } {
 }
 
 async function main() {
+  // Top-level help: print and exit before any TUI or provider startup.
+  if (process.argv[2] === "-h" || process.argv[2] === "--help" || process.argv[2] === "help") {
+    process.stdout.write(`${PACE_USAGE}\n`);
+    process.exit(0);
+  }
+
   // `pace run ...` is the headless (non-interactive) mode. Dispatch it before
   // any TUI startup so it stays fast and never touches the terminal UI.
   if (process.argv[2] === "run") {
