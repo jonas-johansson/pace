@@ -49,6 +49,7 @@ import {
 } from "@pace/agent";
 import {
   DEFAULT_MODEL_ID,
+  DEFAULT_MODEL_VARIANT_ID,
   getModelConfig,
   getModelVariant,
   getModels,
@@ -331,6 +332,8 @@ export async function runHeadless(argv: string[], io: HeadlessIo = {}): Promise<
     modelVariant = variant && selection.variantId ? { ...variant, id: selection.variantId } : undefined;
   } else {
     modelConfig = getModelConfig(DEFAULT_MODEL_ID) ?? getModels()[DEFAULT_MODEL_ID];
+    const defaultVariant = getModelVariant(DEFAULT_MODEL_ID, DEFAULT_MODEL_VARIANT_ID);
+    modelVariant = defaultVariant ? { ...defaultVariant, id: DEFAULT_MODEL_VARIANT_ID } : undefined;
   }
   const modelLabel = modelVariant ? `${modelConfig.id}:${modelVariant.id}` : modelConfig.id;
 

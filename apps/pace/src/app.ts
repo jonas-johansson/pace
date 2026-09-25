@@ -76,6 +76,7 @@ import type {
 } from "@pace/llm";
 import {
   DEFAULT_MODEL_ID,
+  DEFAULT_MODEL_VARIANT_ID,
   getAvailableModelIds,
   getModelConfig,
   getModelVariant,
@@ -146,7 +147,9 @@ async function getProjectFiles(): Promise<string[]> {
 // ── Model state ──────────────────────────────────────────────────────────────
 
 let currentModelId: string = DEFAULT_MODEL_ID;
-const lastVariantByModelId = new Map<string, string>();
+const lastVariantByModelId = new Map<string, string>([
+  [DEFAULT_MODEL_ID, DEFAULT_MODEL_VARIANT_ID],
+]);
 let cycleModelSelections: ModelSelection[] = [
   { modelId: "opencode/kimi-k3" },
   { modelId: "opencode/kimi-k2.7-code" },
@@ -545,6 +548,8 @@ function activateSession(session: Session) {
   currentModelId = getModelConfig(activeSession.currentModelId) ? activeSession.currentModelId : DEFAULT_MODEL_ID;
   if (getModelVariant(currentModelId, activeSession.currentModelVariant)) {
     lastVariantByModelId.set(currentModelId, activeSession.currentModelVariant as string);
+  } else if (currentModelId === DEFAULT_MODEL_ID) {
+    lastVariantByModelId.set(currentModelId, DEFAULT_MODEL_VARIANT_ID);
   } else {
     lastVariantByModelId.delete(currentModelId);
   }

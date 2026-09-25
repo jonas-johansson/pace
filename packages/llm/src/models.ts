@@ -873,7 +873,8 @@ function createModels(metadata: Record<string, ModelMetadata> = runtimeModelMeta
 
 let runtimeModels: Record<string, ModelConfig> = createModels();
 
-export const DEFAULT_MODEL_ID = "opencode/kimi-k2.6";
+export const DEFAULT_MODEL_ID = "fireworks/glm-5.3-flash";
+export const DEFAULT_MODEL_VARIANT_ID = "high";
 
 /**
  * Replace the remote portion of the runtime catalog. Built-in model metadata is
