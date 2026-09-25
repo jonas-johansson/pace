@@ -22,6 +22,11 @@ export class OpenRouterProvider extends OpenAiCompatibleProvider {
       baseUrl: process.env.OPENROUTER_BASE_URL ?? DEFAULT_BASE_URL,
       // OpenRouter model slugs ("vendor/model") are used verbatim.
       mapModel: (model) => model,
+      // Prefer Fireworks as the upstream provider; OpenRouter may still route
+      // to other providers when Fireworks is unavailable for the model.
+      defaultBody: {
+        provider: { order: ["Fireworks"], allow_fallbacks: true },
+      },
       // Optional attribution headers OpenRouter uses for app rankings.
       extraHeaders: { "X-Title": "Pace" },
       useFetchRetry: true,
