@@ -449,7 +449,7 @@ export const MODEL_METADATA: Record<string, ModelMetadata> = {
     variants: KIMI_K3_VARIANTS,
     pricing: {
       inputPerMTok: 3.00,
-      cacheWritePerMTok: 0,
+      cacheWritePerMTok: 3.00,
       cacheReadPerMTok: 0.30,
       outputPerMTok: 15.00,
     },
@@ -492,10 +492,10 @@ export const MODEL_METADATA: Record<string, ModelMetadata> = {
     providerModel: "deepseek-flash",
     variants: DEEPSEEK_V4_1_VARIANTS,
     pricing: {
-      inputPerMTok: 0.15,
+      inputPerMTok: 0.30,
       cacheWritePerMTok: 0,
-      cacheReadPerMTok: 0.003,
-      outputPerMTok: 0.60,
+      cacheReadPerMTok: 0.006,
+      outputPerMTok: 1.20,
     },
   },
   "opencode/glm-5.2": {
@@ -567,7 +567,7 @@ export const MODEL_METADATA: Record<string, ModelMetadata> = {
     pricing: {
       inputPerMTok: 0.15,
       cacheWritePerMTok: 0,
-      cacheReadPerMTok: 0.029,
+      cacheReadPerMTok: 0.03,
       outputPerMTok: 0.50,
     },
   },
@@ -675,10 +675,10 @@ export const MODEL_METADATA: Record<string, ModelMetadata> = {
     supportsImages: false,
     variants: QUASAR_REASONING_VARIANTS,
     pricing: {
-      inputPerMTok: 0.60,
+      inputPerMTok: 0.11,
       cacheWritePerMTok: 0,
-      cacheReadPerMTok: 0,
-      outputPerMTok: 1.80,
+      cacheReadPerMTok: 0.0099,
+      outputPerMTok: 0.33,
     },
   },
   // Xiaomi MiMo (api.xiaomimimo.com). Thinking is enabled by default
