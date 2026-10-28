@@ -85,8 +85,6 @@ Pace ships with a curated built-in model catalog and also loads new models from 
 | `opencode/glm-5.3-flash` |
 | `fireworks/glm-5.3` |
 | `fireworks/glm-5.3-flash` |
-| `fireworks/kimi-k2.6` |
-| `fireworks/kimi-k2.7-code` |
 | `friendli/glm-5.3-flash` |
 | `opencode/gpt-5.5` |
 | `openai/gpt-5.5` |

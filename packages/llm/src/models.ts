@@ -571,29 +571,6 @@ export const MODEL_METADATA: Record<string, ModelMetadata> = {
       outputPerMTok: 0.50,
     },
   },
-  "fireworks/kimi-k2.6": {
-    contextWindow: 262_144,
-    maxOutputTokens: 32_000,
-    supportsImages: true,
-    variants: KIMI_VARIANTS,
-    pricing: {
-      inputPerMTok: 0.95,
-      cacheWritePerMTok: 0,
-      cacheReadPerMTok: 0.16,
-      outputPerMTok: 4.00,
-    },
-  },
-  "fireworks/kimi-k2.7-code": {
-    contextWindow: 262_144,
-    maxOutputTokens: 32_000,
-    supportsImages: true,
-    pricing: {
-      inputPerMTok: 0.95,
-      cacheWritePerMTok: 0,
-      cacheReadPerMTok: 0.19,
-      outputPerMTok: 4.00,
-    },
-  },
   "opencode/gpt-5.5": {
     contextWindow: 1_050_000,
     maxOutputTokens: 128_000,
