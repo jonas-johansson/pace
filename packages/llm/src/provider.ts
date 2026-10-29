@@ -139,6 +139,42 @@ export type ToolDefinition = {
  */
 export type ToolOutputContent = Array<TextBlock | ImageBlock>;
 
+// ── Output budget ────────────────────────────────────────────────────────────
+
+/**
+ * Reserve this many tokens in the context window for tokenization differences
+ * between Pace's estimates and the provider's count. Without it, a request
+ * whose input plus advertised output limit exactly fits the window can still
+ * be rejected upstream.
+ */
+export const OUTPUT_BUDGET_SAFETY_MARGIN_TOKENS = 4_000;
+
+/**
+ * Cap a model's advertised output limit so `input + requested_output` stays
+ * inside the context window.
+ *
+ * Some models advertise output limits that consume the entire context window
+ * (e.g. gemini-4-argon allows 943,718 output tokens in a 1,048,576-token
+ * window). Providers that validate requests against the context length reject
+ * any request where the input prompt plus the output budget overshoots the
+ * window, even when the input alone is far below the limit. Pass the current
+ * request's input size (as reported by a prior response's usage) to keep the
+ * output budget within the remaining window.
+ *
+ * Accepts a raw number so callers that already track input tokens can apply it
+ * without building a request first. When `contextWindow` is unknown (<= 0),
+ * the advertised limit is returned unchanged.
+ */
+export function capOutputTokensForContext(
+  contextWindow: number,
+  maxOutputTokens: number,
+  inputTokens: number,
+): number {
+  if (contextWindow <= 0) return maxOutputTokens;
+  const remaining = contextWindow - inputTokens - OUTPUT_BUDGET_SAFETY_MARGIN_TOKENS;
+  return Math.min(maxOutputTokens, Math.max(1, remaining));
+}
+
 // ── Provider interface ───────────────────────────────────────────────────────
 
 export interface Provider {

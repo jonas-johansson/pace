@@ -42,6 +42,7 @@ function mockProvider(script: ScriptedTurn[]) {
     system: string;
     messages: ProviderMessage[];
     tools: ToolDefinition[];
+    maxTokens: number;
   }[] = [];
 
   const provider: Provider = {
@@ -51,6 +52,7 @@ function mockProvider(script: ScriptedTurn[]) {
         system: params.system,
         messages: params.messages,
         tools: params.tools,
+        maxTokens: params.maxTokens,
       });
       const turn = script[requests.length - 1];
       if (!turn) throw new Error(`Unexpected provider request #${requests.length}`);
@@ -687,6 +689,41 @@ test("unknown tool acts as a barrier between safe runs", async () => {
   assert.equal(toolResultCalls.length, 1);
   assert.match(toolResultCalls[0][1].display, /Couldn't find tool/);
   assert.equal(toolResultCalls[0][1].result.is_error, true);
+});
+
+test("output budget is capped so input plus output fits the context window", async () => {
+  const { provider, requests } = mockProvider([
+    {
+      // First response: usage grows the tracked context to ~953K tokens.
+      response: {
+        content: [{ type: "tool_use", id: "c1", name: "missing", input: {} }],
+        stopReason: "tool_use",
+        usage: { ...baseUsage, inputTokens: 950_000, outputTokens: 3_000 },
+      },
+    },
+    { response: textResponse("done") },
+  ]);
+
+  const result = await runAgentLoop(baseParams({
+    provider,
+    contextWindow: 1_000_000,
+    maxTokens: 943_718,
+  }));
+
+  assert.equal(result.cancelled, false);
+  // First request has no prior usage, so the full advertised output limit is
+  // sent. The second request's prompt is ~953K tokens, leaving only ~43K for
+  // output inside the 1M window (minus the 4K safety margin).
+  assert.equal(requests[0].maxTokens, 943_718);
+  assert.equal(requests[1].maxTokens, 1_000_000 - 953_000 - 4_000);
+});
+
+test("output budget is untouched without a known context window", async () => {
+  const { provider, requests } = mockProvider([{ response: textResponse("done") }]);
+
+  await runAgentLoop(baseParams({ provider, maxTokens: 64_000 }));
+
+  assert.equal(requests[0].maxTokens, 64_000);
 });
 
 // ── Auto-compaction trigger ──────────────────────────────────────────────────

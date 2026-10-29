@@ -89,7 +89,7 @@ import {
 } from "@pace/llm";
 import { readClipboardImage, type SupportedImageMediaType } from "./clipboard";
 import { sendDesktopNotification } from "./notify";
-import { onEvent, resolveProvider } from "@pace/llm";
+import { onEvent, resolveProvider, capOutputTokensForContext } from "@pace/llm";
 import { loadPaceConfig, effectiveCompactionThreshold, DEFAULT_COST_DISPLAY_CONFIG, DEFAULT_COMPACTION_CONFIG, DEFAULT_TOOL_PROGRESS_CONFIG, type CostDisplayConfig, type CompactionConfig, type ToolProgressConfig } from "./config";
 import { appendStreamedToolContent, STREAM_TITLE_UPDATE_MS, streamingToolTitle } from "./tool-progress";
 import {
@@ -848,7 +848,11 @@ async function compactContext(opts: {
       ...(modelConfig.providerOptions ?? {}),
       ...(modelVariant?.providerOptions ?? {}),
     },
-    maxTokens: Math.min(modelConfig.maxOutputTokens, 16_000),
+    maxTokens: capOutputTokensForContext(
+      modelConfig.contextWindow,
+      Math.min(modelConfig.maxOutputTokens, 16_000),
+      plan.tokensBeforeEstimate,
+    ),
     messages: plan.messagesToSummarize,
     focus: opts.focus,
     signal: opts.signal,
@@ -1894,6 +1898,7 @@ async function prompt(
       tools,
       toolDefs,
       maxTokens: modelConfig.maxOutputTokens,
+      contextWindow: modelConfig.contextWindow,
       providerOptions: {
         ...(modelConfig.providerOptions ?? {}),
         ...(modelVariant?.providerOptions ?? {}),

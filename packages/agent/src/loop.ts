@@ -21,6 +21,7 @@ import type {
 } from "@pace/llm";
 import { isAbortError, formatToolResultBody, throwIfAborted, type ToolDescriptor } from "./tools/core";
 import { truncateToolOutputIfNeeded } from "./tools/output";
+import { capOutputTokensForContext } from "@pace/llm";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -54,6 +55,15 @@ export type AgentLoopParams = {
   /** Provider-agnostic tool definitions sent to the model. */
   toolDefs: ToolDefinition[];
   maxTokens: number;
+  /**
+   * The model's advertised context window in tokens. When known (> 0), the
+   * output budget passed to the provider is capped so the input prompt plus
+   * the requested output stays within the window. Needed because some models
+   * advertise output limits that consume the whole context (e.g. 943,718
+   * output tokens in a 1,048,576-token window), and providers reject requests
+   * where input + output would overshoot it.
+   */
+  contextWindow?: number;
   providerOptions?: Record<string, unknown>;
   signal?: AbortSignal;
   /** Stable conversation identifier forwarded to the provider (session affinity). */
@@ -256,12 +266,21 @@ export async function runAgentLoop(params: AgentLoopParams): Promise<AgentLoopRe
 
     const messages = params.getMessages();
 
+    // Cap the output budget against the model's context window. The previous
+    // response's input + output tokens is the best estimate of this request's
+    // prompt size (the next prompt is the previous prompt plus the prior
+    // response, replayed reasoning included). Providers reject requests whose
+    // input plus requested output exceeds the context length.
+    const outputBudget = params.contextWindow !== undefined
+      ? capOutputTokensForContext(params.contextWindow, params.maxTokens, contextTokens)
+      : params.maxTokens;
+
     const stream = await params.provider.stream({
       model: params.model,
       system: params.system,
       messages,
       tools: params.toolDefs,
-      maxTokens: params.maxTokens,
+      maxTokens: outputBudget,
       providerOptions: params.providerOptions,
       signal: params.signal,
       sessionId: params.sessionId,

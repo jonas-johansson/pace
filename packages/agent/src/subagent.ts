@@ -68,6 +68,7 @@ export async function runSubagent(params: SubagentRunParams): Promise<SubagentRe
     tools: params.tools,
     toolDefs: params.toolDefs,
     maxTokens: params.modelConfig.maxOutputTokens,
+    contextWindow: params.modelConfig.contextWindow,
     providerOptions: params.modelConfig.providerOptions,
     signal: params.signal,
     sessionId: `subagent-${randomUUID()}`,

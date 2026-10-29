@@ -56,6 +56,7 @@ import {
   loadCachedModelCatalog,
   parseModelSelection,
   resolveProvider,
+  capOutputTokensForContext,
   type ModelConfig,
   type ModelVariant,
   type Provider,
@@ -528,7 +529,11 @@ export async function runHeadless(argv: string[], io: HeadlessIo = {}): Promise<
             ...(summarizerConfig.providerOptions ?? {}),
             ...(summarizerVariant?.providerOptions ?? {}),
           },
-          maxTokens: Math.min(summarizerConfig.maxOutputTokens, 16_000),
+          maxTokens: capOutputTokensForContext(
+            summarizerConfig.contextWindow,
+            Math.min(summarizerConfig.maxOutputTokens, 16_000),
+            plan.tokensBeforeEstimate,
+          ),
           messages: plan.messagesToSummarize,
           sessionId: session.id,
         });
@@ -580,6 +585,7 @@ export async function runHeadless(argv: string[], io: HeadlessIo = {}): Promise<
         tools,
         toolDefs: getProviderToolDefinitions(),
         maxTokens: modelConfig.maxOutputTokens,
+        contextWindow: modelConfig.contextWindow,
         providerOptions: {
           ...(modelConfig.providerOptions ?? {}),
           ...(modelVariant?.providerOptions ?? {}),
