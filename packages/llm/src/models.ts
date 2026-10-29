@@ -54,6 +54,13 @@ const ZERO_PRICING: PricingConfig = {
 
 const OPENAI_ENCRYPTED_REASONING_INCLUDE = ["reasoning.encrypted_content"];
 
+/** Explicit reasoning off switch for providers that accept a thinking toggle. */
+const NOTHINK_VARIANT: ModelVariant = {
+  id: "nothink",
+  label: "thinking: disabled",
+  providerOptions: { thinking: { type: "disabled" } },
+};
+
 function openAIReasoningEffortVariant(effort: "none" | "low" | "medium" | "high" | "xhigh"): ModelVariant {
   return {
     id: effort,
@@ -84,14 +91,8 @@ function anthropicAdaptiveThinkingVariant(effort: "low" | "medium" | "high" | "x
   };
 }
 
-const ANTHROPIC_NOTHINK_VARIANT: ModelVariant = {
-  id: "nothink",
-  label: "thinking: disabled",
-  providerOptions: { thinking: { type: "disabled" } },
-};
-
 const ANTHROPIC_ADAPTIVE_THINKING_VARIANTS: Record<string, ModelVariant> = {
-  nothink: ANTHROPIC_NOTHINK_VARIANT,
+  nothink: NOTHINK_VARIANT,
   adaptive: {
     id: "adaptive",
     label: "adaptive thinking",
@@ -130,90 +131,45 @@ const MIMO_VARIANTS: Record<string, ModelVariant> = {
   },
 };
 
-const KIMI_K3_VARIANTS: Record<string, ModelVariant> = {
-  low: {
-    id: "low",
-    label: "reasoning effort: low",
-    providerOptions: { reasoning_effort: "low" },
-  },
-  high: {
-    id: "high",
-    label: "reasoning effort: high",
-    providerOptions: { reasoning_effort: "high" },
-  },
-  max: {
-    id: "max",
-    label: "reasoning effort: max",
-    providerOptions: { reasoning_effort: "max" },
-  },
-};
+type ReasoningEffortLevel = "low" | "medium" | "high" | "max";
 
-const DEEPSEEK_VARIANTS: Record<string, ModelVariant> = {
-  think: {
-    id: "think",
-    label: "thinking: enabled",
-    providerOptions: { thinking: { type: "enabled" } },
-  },
-  nothink: {
-    id: "nothink",
-    label: "thinking: disabled",
-    providerOptions: { thinking: { type: "disabled" } },
-  },
-  max: {
-    id: "max",
-    label: "reasoning effort: max",
-    providerOptions: { thinking: { type: "enabled" }, reasoning_effort: "max" },
-  },
-};
+/** Effort variant for OpenAI-compatible endpoints: `reasoning_effort` only. */
+function reasoningEffortVariant(effort: ReasoningEffortLevel): ModelVariant {
+  return {
+    id: effort,
+    label: `reasoning effort: ${effort}`,
+    providerOptions: { reasoning_effort: effort },
+  };
+}
 
-const DEEPSEEK_V4_1_VARIANTS: Record<string, ModelVariant> = {
-  low: {
-    id: "low",
-    label: "reasoning effort: low",
-    providerOptions: { reasoning_effort: "low" },
-  },
-  high: {
-    id: "high",
-    label: "reasoning effort: high",
-    providerOptions: { reasoning_effort: "high" },
-  },
-  max: {
-    id: "max",
-    label: "reasoning effort: max",
-    providerOptions: { reasoning_effort: "max" },
-  },
-};
+/**
+ * Builds a variant table from the effort levels models.dev reports for a model.
+ * `toggle` adds the explicit off switch. No bare "on" variant is added: every
+ * effort level already enables reasoning, and the provider defaults to one of
+ * them (DeepSeek V4.1 defaults to "high"), so "think" would duplicate it.
+ */
+function reasoningEffortVariants(
+  efforts: ReadonlyArray<ReasoningEffortLevel>,
+  options: { toggle?: boolean } = {},
+): Record<string, ModelVariant> {
+  const variants: Record<string, ModelVariant> = {};
+  if (options.toggle) variants.nothink = NOTHINK_VARIANT;
+  for (const effort of efforts) variants[effort] = reasoningEffortVariant(effort);
+  return variants;
+}
 
-const GLM_5_2_REASONING_VARIANTS: Record<string, ModelVariant> = {
-  high: {
-    id: "high",
-    label: "reasoning effort: high",
-    providerOptions: { reasoning_effort: "high" },
-  },
-  max: {
-    id: "max",
-    label: "reasoning effort: max",
-    providerOptions: { reasoning_effort: "max" },
-  },
-};
+// Effort levels per models.dev. DeepSeek V4 Pro tops out at "high"/"max", the
+// free Flash tier has no thinking toggle, and only the paid Flash models expose
+// the "low" level.
+const DEEPSEEK_V4_PRO_VARIANTS = reasoningEffortVariants(["high", "max"], { toggle: true });
+const DEEPSEEK_V4_FLASH_VARIANTS = reasoningEffortVariants(["low", "high", "max"], { toggle: true });
+const DEEPSEEK_V4_FLASH_FREE_VARIANTS = reasoningEffortVariants(["low", "high", "max"]);
+const DEEPSEEK_V4_1_VARIANTS = reasoningEffortVariants(["low", "high", "max"], { toggle: true });
 
-const GLM_5_3_FLASH_REASONING_VARIANTS: Record<string, ModelVariant> = {
-  low: {
-    id: "low",
-    label: "reasoning effort: low",
-    providerOptions: { reasoning_effort: "low" },
-  },
-  high: {
-    id: "high",
-    label: "reasoning effort: high",
-    providerOptions: { reasoning_effort: "high" },
-  },
-  max: {
-    id: "max",
-    label: "reasoning effort: max",
-    providerOptions: { reasoning_effort: "max" },
-  },
-};
+const GLM_5_2_REASONING_VARIANTS = reasoningEffortVariants(["high", "max"]);
+const GLM_5_3_REASONING_VARIANTS = reasoningEffortVariants(["low", "high", "max"]);
+
+const KIMI_K3_VARIANTS = reasoningEffortVariants(["low", "high", "max"], { toggle: true });
 
 const FABLE_5_EFFORT_VARIANTS: Record<string, ModelVariant> = {
   low: {
@@ -259,7 +215,7 @@ const FABLE_5_EFFORT_VARIANTS: Record<string, ModelVariant> = {
 };
 
 const ANTHROPIC_BUDGET_THINKING_VARIANTS: Record<string, ModelVariant> = {
-  nothink: ANTHROPIC_NOTHINK_VARIANT,
+  nothink: NOTHINK_VARIANT,
   "thinking-8k": {
     id: "thinking-8k",
     label: "thinking budget: 8k",
@@ -458,7 +414,7 @@ export const MODEL_METADATA: Record<string, ModelMetadata> = {
     contextWindow: 1_000_000,
     maxOutputTokens: 384_000,
     supportsImages: false,
-    variants: DEEPSEEK_VARIANTS,
+    variants: DEEPSEEK_V4_PRO_VARIANTS,
     pricing: {
       inputPerMTok: 1.74,
       cacheWritePerMTok: 0,
@@ -470,7 +426,7 @@ export const MODEL_METADATA: Record<string, ModelMetadata> = {
     contextWindow: 1_000_000,
     maxOutputTokens: 384_000,
     supportsImages: false,
-    variants: DEEPSEEK_VARIANTS,
+    variants: DEEPSEEK_V4_FLASH_VARIANTS,
     pricing: {
       inputPerMTok: 0.14,
       cacheWritePerMTok: 0,
@@ -482,7 +438,7 @@ export const MODEL_METADATA: Record<string, ModelMetadata> = {
     contextWindow: 200_000,
     maxOutputTokens: 128_000,
     supportsImages: false,
-    variants: DEEPSEEK_VARIANTS,
+    variants: DEEPSEEK_V4_FLASH_FREE_VARIANTS,
     pricing: ZERO_PRICING,
   },
   "opencode/deepseek-v4.1-flash": {
@@ -514,7 +470,7 @@ export const MODEL_METADATA: Record<string, ModelMetadata> = {
     contextWindow: 1_000_000,
     maxOutputTokens: 131_072,
     supportsImages: false,
-    variants: GLM_5_2_REASONING_VARIANTS,
+    variants: GLM_5_3_REASONING_VARIANTS,
     pricing: {
       inputPerMTok: 1.40,
       cacheWritePerMTok: 0,
@@ -526,7 +482,7 @@ export const MODEL_METADATA: Record<string, ModelMetadata> = {
     contextWindow: 1_000_000,
     maxOutputTokens: 131_072,
     supportsImages: true,
-    variants: GLM_5_3_FLASH_REASONING_VARIANTS,
+    variants: GLM_5_3_REASONING_VARIANTS,
     pricing: {
       inputPerMTok: 0.15,
       cacheWritePerMTok: 0,
@@ -539,7 +495,7 @@ export const MODEL_METADATA: Record<string, ModelMetadata> = {
     maxOutputTokens: 1_048_576,
     supportsImages: true,
     providerModel: "zai-org/GLM-5.3-Flash",
-    variants: GLM_5_3_FLASH_REASONING_VARIANTS,
+    variants: GLM_5_3_REASONING_VARIANTS,
     pricing: {
       inputPerMTok: 0.15,
       cacheWritePerMTok: 0,
@@ -551,7 +507,7 @@ export const MODEL_METADATA: Record<string, ModelMetadata> = {
     contextWindow: 1_000_000,
     maxOutputTokens: 131_072,
     supportsImages: false,
-    variants: GLM_5_2_REASONING_VARIANTS,
+    variants: GLM_5_3_REASONING_VARIANTS,
     pricing: {
       inputPerMTok: 1.40,
       cacheWritePerMTok: 0,
@@ -563,7 +519,7 @@ export const MODEL_METADATA: Record<string, ModelMetadata> = {
     contextWindow: 1_000_000,
     maxOutputTokens: 131_072,
     supportsImages: true,
-    variants: GLM_5_3_FLASH_REASONING_VARIANTS,
+    variants: GLM_5_3_REASONING_VARIANTS,
     pricing: {
       inputPerMTok: 0.15,
       cacheWritePerMTok: 0,
@@ -679,7 +635,7 @@ export const MODEL_METADATA: Record<string, ModelMetadata> = {
     contextWindow: 1_000_000,
     maxOutputTokens: 131_072,
     supportsImages: true,
-    variants: GLM_5_3_FLASH_REASONING_VARIANTS,
+    variants: GLM_5_3_REASONING_VARIANTS,
     pricing: {
       inputPerMTok: 0.20,
       cacheWritePerMTok: 0,

@@ -225,13 +225,17 @@ function reasoningEffortVariant(style: ReasoningApiStyle, effort: string): Model
     };
   }
 
+  // Send only `reasoning_effort`. Fireworks documents `thinking` and
+  // `reasoning_effort` as mutually exclusive and rejects the combination
+  // outright when the effort is "none"
+  // ("thinking.type='enabled' conflicts with reasoning_effort='none'"), while
+  // every other OpenAI-compatible endpoint in this bucket understands the
+  // effort parameter on its own. Effort levels also turn thinking on
+  // implicitly, so no separate enable flag is needed.
   return {
     id: effort,
     label: `reasoning effort: ${effort}`,
-    providerOptions: {
-      thinking: { type: "enabled" },
-      reasoning_effort: effort,
-    },
+    providerOptions: { reasoning_effort: effort },
   };
 }
 
@@ -289,14 +293,25 @@ function toReasoningVariants(
 
   const style = reasoningApiStyle(providerId, providerModelId);
   const variants: Record<string, ModelVariant> = {};
+  let hasEffortLevels = false;
   for (const option of model.reasoning_options ?? []) {
     if (option.type === "toggle") {
       Object.assign(variants, reasoningToggleVariants(style));
     } else if (option.type === "effort") {
       for (const effort of (option.values ?? []).filter((value): value is string => typeof value === "string")) {
         variants[effort] = reasoningEffortVariant(style, effort);
+        hasEffortLevels = true;
       }
     }
+  }
+
+  // A bare "turn thinking on" variant duplicates the default effort once
+  // explicit effort levels exist: Fireworks serves DeepSeek V4.1 at "high"
+  // when no effort is requested, so "think" and "high" are the same request.
+  // Keep the explicit off switch and let the effort levels cover on.
+  if (hasEffortLevels) {
+    delete variants.think;
+    delete variants.adaptive;
   }
 
   return Object.keys(variants).length > 0 ? variants : undefined;
@@ -351,6 +366,14 @@ function toRemoteMetadata(catalog: ModelsDevCatalog): Record<string, ModelMetada
   }
 
   return metadata;
+}
+
+/**
+ * Derive Pace model metadata from a parsed models.dev catalog document.
+ * Exposed so tests can exercise the mapping without a network round trip.
+ */
+export function deriveModelMetadata(catalog: unknown): Record<string, ModelMetadata> {
+  return toRemoteMetadata(catalogSchema.parse(catalog));
 }
 
 async function readCatalogFile(path: string): Promise<ModelsDevCatalog | undefined> {
